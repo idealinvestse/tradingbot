@@ -1,0 +1,21 @@
+{
+  "events": [
+    {
+      "name": "US CPI Release",
+      "symbols": ["BTC"],
+      "category": "macro",
+      "impact": "high",
+      "start": "2025-01-12T13:30:00Z",
+      "end": "2025-01-12T14:30:00Z",
+      "description": "CPI data release"
+    },
+    {
+      "name": "Bitcoin Halving",
+      "symbols": ["BTC"],
+      "category": "protocol",
+      "impact": "high",
+      "start": "2024-04-20T00:00:00Z",
+      "description": "Approximate halving window"
+    }
+  ]
+}
