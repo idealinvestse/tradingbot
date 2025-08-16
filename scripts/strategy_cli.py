@@ -16,6 +16,7 @@ if str(_ROOT) not in sys.path:
 from app.strategies.registry import export_sqlite, load_registry, write_markdown
 from app.strategies.introspect import discover_strategies, to_json_dict
 from app.strategies.metrics import index_backtests
+from app.strategies.reporting import generate_results_markdown_from_db
 
 
 def main() -> None:
@@ -26,6 +27,18 @@ def main() -> None:
     p_docs.add_argument(
         "--registry",
         default=str(project_root() / "docs" / "strategies_registry.json"),
+    )
+
+    p_rep = sub.add_parser("report-results", help="Generate Markdown report from SQLite results DB")
+    p_rep.add_argument(
+        "--db",
+        default=str(project_root() / "user_data" / "registry" / "strategies_registry.sqlite"),
+        help="Path to SQLite DB",
+    )
+    p_rep.add_argument(
+        "--out",
+        default=str(project_root() / "docs" / "RESULTS.md"),
+        help="Output Markdown file",
     )
 
     p_idx = sub.add_parser("index-backtests", help="Parse backtest meta and index into SQLite DB")
@@ -102,6 +115,15 @@ def main() -> None:
         db_out.parent.mkdir(parents=True, exist_ok=True)
         n = index_backtests(back_dir, db_out)
         print(f"Indexed {n} backtest runs into {db_out}")
+        return
+
+    if args.cmd == "report-results":
+        db = Path(args.db)
+        out = Path(args.out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        md = generate_results_markdown_from_db(db)
+        out.write_text(md, encoding="utf-8")
+        print(f"Wrote {out}")
         return
 
     if args.cmd == "all":

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import sqlite3
+from pathlib import Path
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 
 def _csv(values: List[Any] | None, dash: str = "-") -> str:
@@ -116,4 +118,80 @@ def generate_markdown(registry: Dict[str, Any]) -> str:
         )
     lines.append("")
 
+    return "\n".join(lines) + "\n"
+
+
+def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
+    """Generate a Markdown report of recent runs with key metrics from SQLite DB.
+
+    Shows latest runs ordered by finished_utc (desc) with selected metrics.
+    """
+    keys = [
+        "profit_total",
+        "profit_total_abs",
+        "sharpe",
+        "sortino",
+        "max_drawdown_abs",
+        "winrate",
+        "trades",
+    ]
+
+    def _mmap(cur: sqlite3.Cursor, run_id: str) -> Dict[str, float]:
+        cur.execute(
+            "SELECT key, value FROM metrics WHERE run_id = ?",
+            (run_id,),
+        )
+        return {k: float(v) for k, v in cur.fetchall()}
+
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+    cur.execute(
+        "SELECT id, experiment_id, kind, started_utc, finished_utc, status FROM runs ORDER BY finished_utc DESC LIMIT ?",
+        (limit,),
+    )
+    rows: List[Tuple[str, str, str, str, str, str]] = cur.fetchall()
+    con.close()
+
+    now_utc = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    lines: List[str] = []
+    lines.append("# Resultat – senaste körningar")
+    lines.append("")
+    lines.append(f"Genererad (UTC): {now_utc}")
+    lines.append("")
+
+    if not rows:
+        lines.append("Inga körningar hittades.")
+        return "\n".join(lines) + "\n"
+
+    # Table header
+    lines.append(
+        "| Run ID | Status | Start | Slut | Typ | profit_total | profit_total_abs | sharpe | sortino | max_dd_abs | winrate | trades |"
+    )
+    lines.append("|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|")
+
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+    for rid, exp, kind, started, finished, status in rows:
+        mmap = _mmap(cur, rid)
+        vals = [mmap.get(k, None) for k in keys]
+        fmt = lambda x: (f"{x:.6g}" if isinstance(x, (int, float)) else "-")
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    rid,
+                    status or "-",
+                    started or "-",
+                    finished or "-",
+                    kind or "-",
+                    *[fmt(v) for v in vals],
+                ]
+            )
+            + " |"
+        )
+    con.close()
+
+    lines.append("")
+    lines.append(f"Nycklar: {', '.join(keys)}")
+    lines.append("")
     return "\n".join(lines) + "\n"
