@@ -2,6 +2,14 @@
 
 Följ denna standard för all kod i projektet. Den är optimerad för en Python-baserad krypto-tradingbot (t.ex. Freqtrade) på Windows med fokus på backtest, paper trading och säker live-handel. Kontext hämtad från `strategy.json` (strategier som DCA, MA-crossover, Swing etc.).
 
+## Sammanfattning för icke-tekniska läsare
+
+- Syfte: Säker, reproducerbar utveckling av automatiserade handelsstrategier.
+- Säkerhet: Inga hemligheter i repo. Testnet/paper först. Live endast efter tydliga backtester.
+- Spårbarhet: Resultat och konfiguration versioneras och kan återskapas.
+- Kvalitet: Kod ska vara läsbar, testad och typad. Fel ska synas snabbt via loggar och tester.
+- Roller: Utvecklare följer denna guide, granskare säkerställer efterlevnad innan ändringar går in.
+
 ## Principer
 
 - __Säkerhet först__: Inga hemligheter i repo. Testnet före Mainnet. Guardrails i kod och CI.
