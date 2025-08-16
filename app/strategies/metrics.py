@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import zipfile
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -271,3 +272,115 @@ def _timeframe_to_minutes(tf: str) -> float:
         return float(tf[:-1]) * 60.0 * 24.0
     # default fallback
     return 0.0
+
+
+def index_hyperopts(hyperopt_dir: Path, db_path: Path) -> int:
+    """Parse all *.fthypt hyperopt result files and persist trials to SQLite.
+
+    Each line in a .fthypt file is a JSON object for a trial, with keys such as
+    'loss', 'params_dict', and optionally 'results_metrics'.
+    We write one row in `runs` per trial (kind='hyperopt') and store numeric params
+    as metrics with prefix 'param.' along with 'loss' and 'trades' (if available).
+    """
+    conn = connect(db_path)
+    ensure_schema(conn, with_extended=True)
+    cur = conn.cursor()
+
+    ts_re = re.compile(r"_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\\.fthypt$")
+
+    count = 0
+    for f in sorted(hyperopt_dir.glob("*.fthypt")):
+        name = f.name
+        m = ts_re.search(name)
+        if not m:
+            # Fallback: use file stem as timestamp id
+            ts_id = f.stem
+            strat_cls = name.replace("strategy_", "").split("_", 1)[0]
+        else:
+            date_s, time_s = m.groups()
+            ts_id = f"{date_s}_{time_s}"
+            # strategy_<Class>_<date>_<time>.fthypt -> extract Class
+            head = name[: m.start()]  # up to _YYYY-..
+            # remove trailing underscore
+            head = head[:-1] if head.endswith("_") else head
+            strat_cls = head.replace("strategy_", "")
+
+        # Experiment per file
+        exp_id = f"exp:hyperopt:{strat_cls}:{ts_id}"
+        _upsert_experiment(
+            cur,
+            exp_id=exp_id,
+            idea_id=f"idea:auto:{strat_cls}",
+            strategy_id=strat_cls,
+            timeframe=None,
+            start_iso=None,
+            end_iso=None,
+        )
+
+        # Artifact: the hyperopt results file (link once per first trial via a flag)
+        file_sha = _sha256_file(f)
+        file_artifact_added = False
+
+        # Use file mtimes as rough run timestamps
+        t_iso = datetime.fromtimestamp(f.stat().st_mtime, tz=UTC).isoformat()
+
+        # Iterate lines (one JSON per trial)
+        try:
+            with f.open("r", encoding="utf-8") as fh:
+                trial_idx = 0
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rec = json.loads(line)
+                    except Exception:
+                        continue
+
+                    trial_idx += 1
+                    run_id = f"hp:{strat_cls}:{ts_id}:{trial_idx:05d}"
+                    _upsert_run(
+                        cur,
+                        run_id,
+                        experiment_id=exp_id,
+                        kind="hyperopt",
+                        started_iso=t_iso,
+                        finished_iso=t_iso,
+                        status="completed",
+                        artifacts_path=str(f.parent),
+                    )
+
+                    # metrics: loss
+                    loss = rec.get("loss")
+                    if isinstance(loss, (int, float)):
+                        _upsert_metric(cur, run_id, "loss", float(loss))
+
+                    # metrics: params
+                    p = rec.get("params_dict") or {}
+                    if isinstance(p, dict):
+                        for k, v in p.items():
+                            if isinstance(v, bool):
+                                _upsert_metric(cur, run_id, f"param.{k}", 1.0 if v else 0.0)
+                            elif isinstance(v, (int, float)):
+                                _upsert_metric(cur, run_id, f"param.{k}", float(v))
+
+                    # metrics: results_metrics -> trades count if available
+                    rm = rec.get("results_metrics") or {}
+                    if isinstance(rm, dict):
+                        trades = rm.get("trades")
+                        if isinstance(trades, list):
+                            _upsert_metric(cur, run_id, "trades", float(len(trades)))
+
+                    # artifact link (once per file)
+                    if not file_artifact_added:
+                        _upsert_artifact(cur, run_id, name=name, path=str(f), sha256=file_sha)
+                        file_artifact_added = True
+
+                    count += 1
+        except Exception:
+            # best-effort parsing per file
+            continue
+
+    conn.commit()
+    conn.close()
+    return count

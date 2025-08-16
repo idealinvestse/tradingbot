@@ -133,6 +133,7 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
         "sortino",
         "max_drawdown_abs",
         "winrate",
+        "loss",
         "trades",
     ]
 
@@ -165,9 +166,9 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
 
     # Table header
     lines.append(
-        "| Run ID | Status | Start | Slut | Typ | profit_total | profit_total_abs | sharpe | sortino | max_dd_abs | winrate | trades |"
+        "| Run ID | Status | Start | Slut | Typ | profit_total | profit_total_abs | sharpe | sortino | max_dd_abs | winrate | loss | trades |"
     )
-    lines.append("|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|")
+    lines.append("|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|")
 
     con = sqlite3.connect(db_path)
     cur = con.cursor()

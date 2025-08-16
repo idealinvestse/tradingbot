@@ -15,7 +15,7 @@ if str(_ROOT) not in sys.path:
 
 from app.strategies.registry import export_sqlite, load_registry, write_markdown
 from app.strategies.introspect import discover_strategies, to_json_dict
-from app.strategies.metrics import index_backtests
+from app.strategies.metrics import index_backtests, index_hyperopts
 from app.strategies.reporting import generate_results_markdown_from_db
 
 
@@ -48,6 +48,18 @@ def main() -> None:
         help="Directory with *.meta.json files",
     )
     p_idx.add_argument(
+        "--db-out",
+        default=str(project_root() / "user_data" / "registry" / "strategies_registry.sqlite"),
+        help="SQLite DB path",
+    )
+
+    p_hopt = sub.add_parser("index-hyperopts", help="Parse hyperopt .fthypt and index into SQLite DB")
+    p_hopt.add_argument(
+        "--dir",
+        default=str(project_root() / "user_data" / "hyperopt_results"),
+        help="Directory with *.fthypt files",
+    )
+    p_hopt.add_argument(
         "--db-out",
         default=str(project_root() / "user_data" / "registry" / "strategies_registry.sqlite"),
         help="SQLite DB path",
@@ -115,6 +127,14 @@ def main() -> None:
         db_out.parent.mkdir(parents=True, exist_ok=True)
         n = index_backtests(back_dir, db_out)
         print(f"Indexed {n} backtest runs into {db_out}")
+        return
+
+    if args.cmd == "index-hyperopts":
+        hdir = Path(args.dir)
+        db_out = Path(args.db_out)
+        db_out.parent.mkdir(parents=True, exist_ok=True)
+        n = index_hyperopts(hdir, db_out)
+        print(f"Indexed {n} hyperopt trials into {db_out}")
         return
 
     if args.cmd == "report-results":
