@@ -94,6 +94,7 @@ Kortfattat:
 ## Vidare läsning
 - Riktlinjer och utvecklingsstandard: `docs/CODE_GUIDELINES.md`
 - Operativ körning & incidenter: `docs/RUNBOOK.md`
+- Strategiregister och strategiöversikt: `docs/STRATEGIES.md`
 - Script och verktyg: `scripts/README.md`
 
 ## Träd
@@ -104,4 +105,3 @@ user_data/
   data/
   logs/
   reports/
-```

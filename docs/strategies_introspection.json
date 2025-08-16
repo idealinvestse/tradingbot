@@ -1,0 +1,333 @@
+{
+  "updated_utc": null,
+  "strategies": [
+    {
+      "class_name": "TemplateStrategy",
+      "file_path": "C:\\Users\\Django\\Documents\\tradingbot\\user_data\\strategies\\_template_strategy.py",
+      "timeframe": null,
+      "parameters": [
+        {
+          "name": "rsi_len",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "rsi_buy",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "rsi_exit",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "risk_per_trade",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "atr_stop_mult",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "max_stake_pct",
+          "kind": "DecimalParameter"
+        }
+      ],
+      "indicators": [
+        "ATR",
+        "RSI"
+      ],
+      "docstring": "Template for Freqtrade strategies (2025.7 compatible).\n\nUsage:\n- Copy this file and rename class and filename.\n- Fill indicators in populate_indicators() only (no side-effects).\n- Implement entry/exit rules with clear, boolean columns.\n- Use hyperopt parameters via IntParameter/DecimalParameter.\n- Keep custom_stake_amount signature with **kwargs (2025.7)."
+    },
+    {
+      "class_name": "BollingerBreakoutStrategy",
+      "file_path": "C:\\Users\\Django\\Documents\\tradingbot\\user_data\\strategies\\bb_breakout_strategy.py",
+      "timeframe": null,
+      "parameters": [
+        {
+          "name": "bb_window",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "bb_min_width",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "squeeze_lb",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "width_expansion_mult",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "vol_mult",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "risk_per_trade",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "atr_stop_mult",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "max_stake_pct",
+          "kind": "DecimalParameter"
+        }
+      ],
+      "indicators": [
+        "ATR",
+        "BB",
+        "BOLLINGER",
+        "SMA"
+      ],
+      "docstring": "Bollinger Band Breakout med volymspik och squeeze-filter.\n\nHypotes:\n- Brytning över övre band efter en squeeze fas (låg BB-width) med samtidiga\n  volymspikar signalerar momentum-start och edge för long."
+    },
+    {
+      "class_name": "BreakoutBbVolStrategy",
+      "file_path": "C:\\Users\\Django\\Documents\\tradingbot\\user_data\\strategies\\breakout_bb_vol.py",
+      "timeframe": null,
+      "parameters": [
+        {
+          "name": "bb_window",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "bb_width_min",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "donchian_window",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "vol_window",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "vol_spike_mult",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "risk_per_trade",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "atr_stop_mult",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "max_stake_pct",
+          "kind": "DecimalParameter"
+        }
+      ],
+      "indicators": [
+        "ATR",
+        "BB",
+        "BOLLINGER",
+        "SMA"
+      ],
+      "docstring": "Breakout-strategi med BB-width och volymspik.\n\nHypotes:\n- Köp när pris bryter över ett nyligt motstånd (Donchian high) tillsammans med\n  expanderande volatilitet (BB-width) och volymspik.\n- Sälj vid momentum-avmattning eller trailing stop."
+    },
+    {
+      "class_name": "HodlStrategy",
+      "file_path": "C:\\Users\\Django\\Documents\\tradingbot\\user_data\\strategies\\hodl_strategy.py",
+      "timeframe": null,
+      "parameters": [],
+      "indicators": [],
+      "docstring": "Enkel HODL-baseline.\n\nIdé: Köp en gång och håll. Inga exits via signaler, ingen trailing.\nAnvänds som referens mot aktiva strategier i backtester."
+    },
+    {
+      "class_name": "MaCrossoverStrategy",
+      "file_path": "C:\\Users\\Django\\Documents\\tradingbot\\user_data\\strategies\\ma_crossover_strategy.py",
+      "timeframe": null,
+      "parameters": [
+        {
+          "name": "ema_short",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "ema_long",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "rsi_length",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "rsi_buy",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "bb_window",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "bb_min_width",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "risk_per_trade",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "atr_stop_mult",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "max_stake_pct",
+          "kind": "DecimalParameter"
+        }
+      ],
+      "indicators": [
+        "ATR",
+        "BOLLINGER",
+        "EMA",
+        "MACD",
+        "RSI",
+        "SMA"
+      ],
+      "docstring": "En enkel EMA-crossover-strategi som lämpar sig för nybörjare och demo.\n\nSignaler:\n- Köp när kort EMA korsar över lång EMA.\n- Sälj när kort EMA korsar under lång EMA.\n\nJustera parametrar via hyperopt eller direkt i koden."
+    },
+    {
+      "class_name": "MeanReversionBbStrategy",
+      "file_path": "C:\\Users\\Django\\Documents\\tradingbot\\user_data\\strategies\\mean_reversion_bb.py",
+      "timeframe": null,
+      "parameters": [
+        {
+          "name": "bb_window",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "bb_std_mult",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "rsi_buy",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "rsi_exit",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "bb_width_max",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "risk_per_trade",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "atr_stop_mult",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "max_stake_pct",
+          "kind": "DecimalParameter"
+        }
+      ],
+      "indicators": [
+        "ATR",
+        "BB",
+        "BOLLINGER",
+        "RSI",
+        "SMA"
+      ],
+      "docstring": "Mean-reversion strategi med Bollinger Bands och RSI.\n\nHypotes:\n- Köp när priset devierar nedåt (under BB-lower) i en sidledes/regim med låg volatilitet,\n  och RSI signalerar översålt.\n- Sälj när priset revertar mot medel (SMA/BB-mid) eller momentum avtar."
+    },
+    {
+      "class_name": "MomentumMacdRsiStrategy",
+      "file_path": "C:\\Users\\Django\\Documents\\tradingbot\\user_data\\strategies\\momentum_macd_rsi.py",
+      "timeframe": null,
+      "parameters": [
+        {
+          "name": "rsi_length",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "rsi_buy",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "bb_window",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "bb_min_width",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "risk_per_trade",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "atr_stop_mult",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "max_stake_pct",
+          "kind": "DecimalParameter"
+        }
+      ],
+      "indicators": [
+        "ATR",
+        "BB",
+        "BOLLINGER",
+        "MACD",
+        "RSI",
+        "SMA"
+      ],
+      "docstring": "Momentum-strategi baserad på MACD + RSI med BB-width expansionsfilter.\n\nHypotes:\n- Gå lång när momentum växlar positivt (MACD-hist > 0 och stigande)\n  samtidigt som marknaden visar styrka (RSI > tröskel) och expanderande volatilitet\n  (Bollinger width över miniminivå).\n\nExits:\n- Momentum avtar (MACD-hist < 0) eller RSI < 50; trailing tar vinst."
+    },
+    {
+      "class_name": "WmaStochSwingStrategy",
+      "file_path": "C:\\Users\\Django\\Documents\\tradingbot\\user_data\\strategies\\wma_stoch_strategy.py",
+      "timeframe": null,
+      "parameters": [
+        {
+          "name": "wma_fast",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "wma_slow",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "stoch_k",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "stoch_d",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "k_buy_max",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "k_sell_min",
+          "kind": "IntParameter"
+        },
+        {
+          "name": "risk_per_trade",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "atr_stop_mult",
+          "kind": "DecimalParameter"
+        },
+        {
+          "name": "max_stake_pct",
+          "kind": "DecimalParameter"
+        }
+      ],
+      "indicators": [
+        "ATR",
+        "STOCH",
+        "WMA"
+      ],
+      "docstring": "Trend + oscillator swing: WMA-trendfilter + Stochastic %K/%D korsningar.\n\nHypotes:\n- Långa trades i övergripande upptrend (pris över lång WMA), inträde på\n  %K cross-upp över %D från översålt zon.\n- Exit när oscillatorn signalerar överköpt/avtagande momentum eller trend bryts."
+    }
+  ]
+}

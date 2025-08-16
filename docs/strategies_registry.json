@@ -1,0 +1,176 @@
+{
+  "version": 1,
+  "updated_utc": "2025-08-16T18:03:00Z",
+  "strategies": [
+    {
+      "id": "ma_crossover",
+      "name": "MA Crossover Strategy",
+      "class_name": "MaCrossoverStrategy",
+      "file_path": "user_data/strategies/ma_crossover_strategy.py",
+      "status": "active",
+      "timeframes": ["5m"],
+      "markets": ["BTC/USDT", "ETH/USDT"],
+      "indicators": ["EMA", "MACD", "RSI", "BollingerBands", "ATR"],
+      "parameters": {
+        "ema_short": {"type": "IntParameter", "default": 12},
+        "ema_long": {"type": "IntParameter", "default": 26},
+        "rsi_length": {"type": "IntParameter", "default": 14},
+        "rsi_buy": {"type": "IntParameter", "default": 52},
+        "bb_window": {"type": "IntParameter", "default": 20},
+        "bb_min_width": {"type": "DecimalParameter", "default": 0.02},
+        "risk_per_trade": {"type": "DecimalParameter", "default": 0.01},
+        "atr_stop_mult": {"type": "DecimalParameter", "default": 2.0},
+        "max_stake_pct": {"type": "DecimalParameter", "default": 0.10}
+      },
+      "risk": {
+        "minimal_roi": {"0": 0.03},
+        "stoploss": -0.10,
+        "trailing_stop": true
+      },
+      "performance": {
+        "last_backtest": null
+      },
+      "tags": ["trend-following", "spot", "demo-friendly"]
+    },
+    {
+      "id": "mean_reversion_bb",
+      "name": "Mean Reversion BB",
+      "class_name": "MeanReversionBbStrategy",
+      "file_path": "user_data/strategies/mean_reversion_bb.py",
+      "status": "draft",
+      "timeframes": ["5m"],
+      "markets": [],
+      "indicators": ["BollingerBands", "RSI"],
+      "parameters": {},
+      "risk": {},
+      "performance": {"last_backtest": null},
+      "tags": ["mean-reversion"]
+    },
+    {
+      "id": "momentum_macd_rsi",
+      "name": "Momentum MACD+RSI",
+      "class_name": "MomentumMacdRsiStrategy",
+      "file_path": "user_data/strategies/momentum_macd_rsi.py",
+      "status": "draft",
+      "timeframes": ["5m"],
+      "markets": [],
+      "indicators": ["MACD", "RSI"],
+      "parameters": {},
+      "risk": {},
+      "performance": {"last_backtest": null},
+      "tags": ["momentum"]
+    },
+    {
+      "id": "bb_breakout",
+      "name": "BB Breakout",
+      "class_name": "BollingerBreakoutStrategy",
+      "file_path": "user_data/strategies/bb_breakout_strategy.py",
+      "status": "draft",
+      "timeframes": ["5m"],
+      "markets": [],
+      "indicators": ["BollingerBands", "Volume"],
+      "parameters": {},
+      "risk": {},
+      "performance": {"last_backtest": null},
+      "tags": ["breakout"]
+    },
+    {
+      "id": "breakout_bb_vol",
+      "name": "Breakout BB+Vol",
+      "class_name": "BreakoutBbVolStrategy",
+      "file_path": "user_data/strategies/breakout_bb_vol.py",
+      "status": "draft",
+      "timeframes": ["5m"],
+      "markets": [],
+      "indicators": ["BollingerBands", "Volume"],
+      "parameters": {},
+      "risk": {},
+      "performance": {"last_backtest": null},
+      "tags": ["breakout"]
+    },
+    {
+      "id": "wma_stoch",
+      "name": "WMA + Stochastic",
+      "class_name": "WmaStochSwingStrategy",
+      "file_path": "user_data/strategies/wma_stoch_strategy.py",
+      "status": "draft",
+      "timeframes": ["5m"],
+      "markets": [],
+      "indicators": ["WMA", "Stochastic"],
+      "parameters": {},
+      "risk": {},
+      "performance": {"last_backtest": null},
+      "tags": ["trend", "oscillator"]
+    },
+    {
+      "id": "hodl",
+      "name": "HODL Strategy",
+      "class_name": "HodlStrategy",
+      "file_path": "user_data/strategies/hodl_strategy.py",
+      "status": "experimental",
+      "timeframes": ["1d"],
+      "markets": [],
+      "indicators": [],
+      "parameters": {},
+      "risk": {},
+      "performance": {"last_backtest": null},
+      "tags": ["buy-and-hold"]
+    },
+    {
+      "id": "template",
+      "name": "Template Strategy",
+      "class_name": "TemplateStrategy",
+      "file_path": "user_data/strategies/_template_strategy.py",
+      "status": "template",
+      "timeframes": [],
+      "markets": [],
+      "indicators": [],
+      "parameters": {},
+      "risk": {},
+      "performance": {"last_backtest": null},
+      "tags": []
+    }
+  ],
+  "methods": [
+    {
+      "id": "backtesting",
+      "name": "Backtesting",
+      "category": "evaluation",
+      "description": "Kör strategi mot historisk data för att mäta PnL, Sharpe, antal trades m.m.",
+      "related_strategies": ["ma_crossover", "mean_reversion_bb", "momentum_macd_rsi"],
+      "references": []
+    },
+    {
+      "id": "hyperopt",
+      "name": "Hyperopt",
+      "category": "optimization",
+      "description": "Optimerar parametrar för en vald strategi över definierade spaces (buy/sell/roi/stoploss).",
+      "related_strategies": ["ma_crossover", "mean_reversion_bb", "momentum_macd_rsi"],
+      "references": []
+    },
+    {
+      "id": "dca_scheduler",
+      "name": "DCA Scheduler",
+      "category": "execution-planning",
+      "description": "Skapar en regelbunden köpplan (Dollar-Cost Averaging) mellan två datum och exporterar CSV.",
+      "related_strategies": [],
+      "references": ["scripts/dca_scheduler.py"]
+    }
+  ],
+  "concepts": [
+    {"id": "ema_crossover", "name": "EMA Crossover", "description": "Korsning av kort/lång EMA genererar köp/säljsignal.", "references": []},
+    {"id": "rsi", "name": "RSI", "description": "Relative Strength Index, momentumindikator.", "references": []},
+    {"id": "bollinger_width", "name": "Bollinger Band Width", "description": "(Övre - Nedre)/SMA som volatilitetsmått.", "references": []},
+    {"id": "atr", "name": "ATR", "description": "Average True Range, volatilitetsmått som kan användas för stopdistance.", "references": []},
+    {"id": "max_drawdown_protection", "name": "Max Drawdown Protection", "description": "Stoppar handel vid för stor nedgång över lookback-fönster.", "references": []}
+  ],
+  "sources": [
+    {
+      "id": "internal_analys_doc",
+      "title": "Analys av strategier",
+      "path": "analys_strategier,.md",
+      "topic": "research",
+      "quality": "internal"
+    }
+  ]
+}

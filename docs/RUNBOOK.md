@@ -100,4 +100,5 @@ docker compose down
 ## 8. Vidare läsning
 - Översikt, FAQ och exempel: `README.md`
 - Kodstandard och utvecklingspolicy: `docs/CODE_GUIDELINES.md`
+- Strategiregister och strategiöversikt: `docs/STRATEGIES.md`
 - Scripts och DCA-planer: `scripts/README.md`
