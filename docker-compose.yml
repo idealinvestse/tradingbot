@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  freqtrade:
+    image: freqtradeorg/freqtrade:stable
+    container_name: freqtrade
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    volumes:
+      - ./user_data:/freqtrade/user_data
+    command: >
+      trade
+      -c /freqtrade/user_data/configs/config.testnet.json
+      --logfile /freqtrade/user_data/logs/freqtrade.log
+      --dry-run
+    tty: true

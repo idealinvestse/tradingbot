@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Tools
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editors
+.vscode/
+.idea/
+
+# Env/Secrets
+.env
+*.secret
+
+# Freqtrade data/logs
+user_data/data/
+user_data/logs/
+user_data/reports/
+
+# OS
+.DS_Store
+Thumbs.db

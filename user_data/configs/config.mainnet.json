@@ -1,0 +1,24 @@
+{
+  "dry_run": false,
+  "max_open_trades": 3,
+  "stake_currency": "USDT",
+  "stake_amount": "unlimited",
+  "fiat_display_currency": "USD",
+  "timeframe": "5m",
+  "strategy": "MaCrossoverStrategy",
+
+  "exchange": {
+    "name": "binance",
+    "key": "${BINANCE_KEY}",
+    "secret": "${BINANCE_SECRET}",
+    "sandbox": false,
+    "ccxt_config": { "enableRateLimit": true },
+    "ccxt_async_config": { "enableRateLimit": true }
+  },
+
+  "pair_whitelist": ["BTC/USDT", "ETH/USDT"],
+  "pair_blacklist": [],
+
+  "telegram": { "enabled": false, "token": "", "chat_id": "" },
+  "logger": { "level": "info" }
+}
