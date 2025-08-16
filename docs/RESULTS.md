@@ -1,14 +1,29 @@
 # Resultat – senaste körningar
 
-Genererad (UTC): 2025-08-16T18:56:21Z
+Genererad (UTC): 2025-08-16T19:00:14Z
 
-| Run ID | Status | Start | Slut | Typ | profit_total | profit_total_abs | sharpe | sortino | max_dd_abs | winrate | trades |
-|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|
-| 8cb3d26ffdb60b061cd0e9907acbde3b8a773c38 | completed | 2025-01-01T00:00:00+00:00 | 2025-08-16T01:45:00+00:00 | backtest | -0.00171909 | -1.71909 | -0.14376 | -0.334824 | - | 0.4 | 30 |
-| 8e94d735e5141bbbdd0894d801eb23450b51ff4d | completed | 2024-01-01T16:40:00+00:00 | 2024-12-30T23:55:00+00:00 | backtest | -0.31829 | -318.29 | -6.46096 | -11.9552 | - | 0.302486 | 724 |
-| 7bf0b0e9d3f4b8d7618452c0ec4b96ccd1916dce | completed | 2024-01-01T16:40:00+00:00 | 2024-12-30T23:55:00+00:00 | backtest | -0.307732 | -307.732 | -6.04431 | -12.0883 | - | 0.30545 | 789 |
-| f4700ce805e35aa7916f736005e502518da9f4e9 | completed | 2024-01-01T16:40:00+00:00 | 2024-12-30T23:55:00+00:00 | backtest | -0.00949101 | -9.49101 | -0.73509 | -1.84554 | - | 0.153846 | 39 |
-| 462660c1333a75af431aa58752ec801afc5e2b9a | completed | 2023-01-01T16:40:00+00:00 | 2023-12-31T00:00:00+00:00 | backtest | -0.0100081 | -10.0081 | -0.815851 | -1.47792 | - | 0.166667 | 30 |
+| Run ID | Status | Start | Slut | Typ | profit_total | profit_total_abs | sharpe | sortino | max_dd_abs | winrate | loss | trades |
+|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00001 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 5.70631 | 1789 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00002 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 9.90326 | 3669 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00003 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 5.72702 | 1781 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00004 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 9.15706 | 3327 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00005 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 7.83738 | 2976 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00006 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 10.1541 | 3837 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00007 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 11.8322 | 4506 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00008 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 8.00129 | 1841 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00009 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 13.8911 | 5839 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00010 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 6.05396 | 1730 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00011 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 14.2276 | 5572 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00012 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 12.0999 | 4404 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00013 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 6.17354 | 2015 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00014 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 17.0186 | 6324 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00015 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 11.257 | 4346 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00016 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 13.665 | 5336 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00017 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 8.20827 | 2073 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00018 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 5.84813 | 1805 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00019 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 8.49469 | 3180 |
+| hp:MeanReversionBbStrategy:strategy_MeanReversionBbStrategy_2025-08-16_02-10-22:00020 | completed | 2025-08-16T02:13:13.662791+00:00 | 2025-08-16T02:13:13.662791+00:00 | hyperopt | - | - | - | - | - | - | 7.87791 | 3034 |
 
-Nycklar: profit_total, profit_total_abs, sharpe, sortino, max_drawdown_abs, winrate, trades
+Nycklar: profit_total, profit_total_abs, sharpe, sortino, max_drawdown_abs, winrate, loss, trades
 
