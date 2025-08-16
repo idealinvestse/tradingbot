@@ -1,0 +1,36 @@
+{
+  "strategy_name": "MomentumMacdRsiStrategy",
+  "params": {
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.01,
+      "trailing_stop_positive_offset": 0.03,
+      "trailing_only_offset_is_reached": true
+    },
+    "max_open_trades": {
+      "max_open_trades": 3
+    },
+    "buy": {
+      "atr_stop_mult": 2.4,
+      "bb_min_width": 0.058,
+      "bb_window": 31,
+      "max_stake_pct": 0.07,
+      "risk_per_trade": 0.009,
+      "rsi_buy": 60,
+      "rsi_length": 16
+    },
+    "sell": {},
+    "protection": {},
+    "roi": {
+      "0": 0.184,
+      "37": 0.056,
+      "88": 0.04,
+      "157": 0
+    },
+    "stoploss": {
+      "stoploss": -0.28
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2025-08-16 01:42:17.227665+00:00"
+}

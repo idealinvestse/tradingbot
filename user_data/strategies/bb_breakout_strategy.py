@@ -92,7 +92,7 @@ class BollingerBreakoutStrategy(IStrategy):
             (df["volume"] > df["volume_mean"] * float(self.vol_mult.value)) &
             (df["volume_mean"].fillna(0) > 0)
         )
-        df.loc[df["enter_long"], ["enter_long", "enter_tag"]] = (1, "bb_breakout")
+        df.loc[df["enter_long"], "enter_tag"] = "bb_breakout"
         return df
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
@@ -102,7 +102,7 @@ class BollingerBreakoutStrategy(IStrategy):
             (df["close"] < df["bb_mid"]) &
             (df["volume"] > 0)
         )
-        df.loc[df["exit_long"], ["exit_long", "exit_tag"]] = (1, "bb_revert")
+        df.loc[df["exit_long"], "exit_tag"] = "bb_revert"
         return df
 
     # --- Risk/position sizing ---
@@ -111,7 +111,6 @@ class BollingerBreakoutStrategy(IStrategy):
         pair: str,
         current_time,  # datetime
         current_rate: float,
-        current_profit: float,
         **kwargs,
     ) -> Optional[float]:
         if not hasattr(self, "dp") or self.dp is None:

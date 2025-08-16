@@ -25,8 +25,13 @@ class MomentumMacdRsiStrategy(IStrategy):
     startup_candle_count: int = 200
     process_only_new_candles: bool = True
 
-    minimal_roi: Dict[str, float] = {"0": 0.03}
-    stoploss: float = -0.10
+    minimal_roi: Dict[str, float] = {
+        "0": 0.184,
+        "37": 0.056,
+        "88": 0.04,
+        "157": 0,
+    }
+    stoploss: float = -0.28
 
     trailing_stop: bool = True
     trailing_stop_positive: float = 0.01
@@ -34,10 +39,10 @@ class MomentumMacdRsiStrategy(IStrategy):
     trailing_only_offset_is_reached: bool = True
 
     # Hyperoptbara filterparametrar
-    rsi_length = IntParameter(7, 21, default=14, space="buy")
-    rsi_buy = IntParameter(50, 60, default=52, space="buy")
-    bb_window = IntParameter(14, 40, default=20, space="buy")
-    bb_min_width = DecimalParameter(0.010, 0.060, decimals=3, default=0.020, space="buy")
+    rsi_length = IntParameter(7, 21, default=16, space="buy")
+    rsi_buy = IntParameter(50, 60, default=60, space="buy")
+    bb_window = IntParameter(14, 40, default=31, space="buy")
+    bb_min_width = DecimalParameter(0.010, 0.060, decimals=3, default=0.058, space="buy")
 
     plot_config = {
         "main_plot": {
@@ -53,9 +58,9 @@ class MomentumMacdRsiStrategy(IStrategy):
     }
 
     # Volatilitetsstyrd position sizing (hyperoptbar)
-    risk_per_trade = DecimalParameter(0.002, 0.02, decimals=3, default=0.010, space="buy")
-    atr_stop_mult = DecimalParameter(1.5, 4.0, decimals=1, default=2.0, space="buy")
-    max_stake_pct = DecimalParameter(0.02, 0.20, decimals=2, default=0.10, space="buy")
+    risk_per_trade = DecimalParameter(0.002, 0.02, decimals=3, default=0.009, space="buy")
+    atr_stop_mult = DecimalParameter(1.5, 4.0, decimals=1, default=2.4, space="buy")
+    max_stake_pct = DecimalParameter(0.02, 0.20, decimals=2, default=0.07, space="buy")
 
     def populate_indicators(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
         df = dataframe.sort_index()
@@ -108,7 +113,7 @@ class MomentumMacdRsiStrategy(IStrategy):
             (df["volume"] > 0) &
             (df["volume_mean"].fillna(0) > 0)
         )
-        df.loc[df["enter_long"], ["enter_long", "enter_tag"]] = (1, "mom_macd_rsi")
+        df.loc[df["enter_long"], "enter_tag"] = "mom_macd_rsi"
         return df
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
@@ -117,7 +122,7 @@ class MomentumMacdRsiStrategy(IStrategy):
             ((df["macdhist"] < 0) | (df["rsi"] < 50)) &
             (df["volume"] > 0)
         )
-        df.loc[df["exit_long"], ["exit_long", "exit_tag"]] = (1, "mom_loss_momentum")
+        df.loc[df["exit_long"], "exit_tag"] = "mom_loss_momentum"
         return df
 
     # --- Risk/position sizing ---
@@ -126,7 +131,6 @@ class MomentumMacdRsiStrategy(IStrategy):
         pair: str,
         current_time,  # datetime
         current_rate: float,
-        current_profit: float,
         **kwargs,
     ) -> Optional[float]:
         """ATR-baserad position sizing (samma logik som i MaCrossoverStrategy)."""

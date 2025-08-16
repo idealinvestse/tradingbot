@@ -122,7 +122,7 @@ class MaCrossoverStrategy(IStrategy):
             (df["volume_mean"].fillna(0) > 0)
         )
 
-        df.loc[df["enter_long"], ["enter_long", "enter_tag"]] = (1, "ema_crossover+filters")
+        df.loc[df["enter_long"], "enter_tag"] = "ema_crossover+filters"
         return df
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
@@ -132,7 +132,7 @@ class MaCrossoverStrategy(IStrategy):
             (df["volume"] > 0)
         )
 
-        df.loc[df["exit_long"], ["exit_long", "exit_tag"]] = (1, "ema_crossdown")
+        df.loc[df["exit_long"], "exit_tag"] = "ema_crossdown"
         return df
 
     # --- Risk/position sizing ---
@@ -141,7 +141,6 @@ class MaCrossoverStrategy(IStrategy):
         pair: str,
         current_time,  # datetime
         current_rate: float,
-        current_profit: float,
         **kwargs,
     ) -> Optional[float]:
         """ATR-baserad position sizing.

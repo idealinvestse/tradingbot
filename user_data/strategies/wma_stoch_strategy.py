@@ -105,7 +105,7 @@ class WmaStochSwingStrategy(IStrategy):
             (df["volume"] > 0) &
             (df["volume_mean"].fillna(0) > 0)
         )
-        df.loc[df["enter_long"], ["enter_long", "enter_tag"]] = (1, "wma_stoch_long")
+        df.loc[df["enter_long"], "enter_tag"] = "wma_stoch_long"
         return df
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
@@ -116,7 +116,7 @@ class WmaStochSwingStrategy(IStrategy):
             (df["close"] < df["wma_fast"]) &
             (df["volume"] > 0)
         )
-        df.loc[df["exit_long"], ["exit_long", "exit_tag"]] = (1, "stoch_revert_or_trend_break")
+        df.loc[df["exit_long"], "exit_tag"] = "stoch_revert_or_trend_break"
         return df
 
     # --- Risk/position sizing ---
@@ -125,7 +125,6 @@ class WmaStochSwingStrategy(IStrategy):
         pair: str,
         current_time,  # datetime
         current_rate: float,
-        current_profit: float,
         **kwargs,
     ) -> Optional[float]:
         if not hasattr(self, "dp") or self.dp is None:
