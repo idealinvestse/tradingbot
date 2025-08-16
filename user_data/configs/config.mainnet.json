@@ -6,7 +6,51 @@
   "fiat_display_currency": "USD",
   "timeframe": "5m",
   "strategy": "MaCrossoverStrategy",
-
+  "entry_pricing": {
+    "price_side": "ask",
+    "use_order_book": true,
+    "order_book_top": 2,
+    "price_last_balance": 0.0,
+    "check_depth_of_market": {
+      "enabled": false,
+      "bids_to_ask_delta": 1
+    }
+  },
+  "exit_pricing": {
+    "price_side": "bid",
+    "use_order_book": true,
+    "order_book_top": 2
+  },
+  "pair_whitelist": ["BTC/USDT", "ETH/USDT"],
+  "pair_blacklist": [],
+  "pairlists": [
+    { "method": "StaticPairList" }
+  ],
+  "protections": [
+    { "method": "CooldownPeriod", "stop_duration_candles": 5 },
+    {
+      "method": "LowProfitPairs",
+      "lookback_period_candles": 24,
+      "trade_limit": 2,
+      "stop_duration_candles": 20,
+      "required_profit": 0.01
+    },
+    {
+      "method": "StoplossGuard",
+      "lookback_period_candles": 48,
+      "trade_limit": 4,
+      "stop_duration_candles": 20,
+      "only_per_pair": false
+    },
+    {
+      "method": "MaxDrawdown",
+      "lookback_period_candles": 72,
+      "trade_limit": 4,
+      "stop_duration_candles": 20,
+      "max_allowed_drawdown": 0.2,
+      "trade_direction": "long"
+    }
+  ],
   "exchange": {
     "name": "binance",
     "key": "${BINANCE_KEY}",
@@ -15,10 +59,6 @@
     "ccxt_config": { "enableRateLimit": true },
     "ccxt_async_config": { "enableRateLimit": true }
   },
-
-  "pair_whitelist": ["BTC/USDT", "ETH/USDT"],
-  "pair_blacklist": [],
-
   "telegram": { "enabled": false, "token": "", "chat_id": "" },
   "logger": { "level": "info" }
 }

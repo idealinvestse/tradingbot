@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   freqtrade:
     image: freqtradeorg/freqtrade:stable
