@@ -1,0 +1,90 @@
+{
+"strategies": [
+{
+"name": "HODLing (Long-Term Investing)",
+"description": "Buying a cryptocurrency and holding it for months or years without frequent trading, believing its value will grow over time. Ideal for beginners who believe in crypto’s future and prefer a low-maintenance approach."
+},
+{
+"name": "Dollar-Cost Averaging (DCA)",
+"description": "Investing a fixed amount at regular intervals (e.g., weekly or monthly) regardless of the coin’s price, averaging out costs over time to reduce risk. Suitable for long-term thinkers who want to build investments slowly without timing the market."
+},
+{
+"name": "Swing Trading",
+"description": "Catching price swings over days or weeks by buying low and selling high, using charts and price patterns to decide entry and exit points. Requires regular market checks and understanding trends; suitable for beginners with some experience."
+},
+{
+"name": "Day Trading",
+"description": "Buying and selling crypto on the same day to profit from small price changes, requiring fast decisions and close market monitoring. Risky for beginners; suitable for those with time, quick decision-making skills, and a strong grasp of trading basics."
+},
+{
+"name": "Momentum Trading",
+"description": "Buying coins that are rising in price and riding the trend before it slows down, focusing on catching the middle of a price move. Requires some chart-watching and early trend recognition; suitable for beginners wanting a short-term strategy."
+},
+{
+"name": "Moving Average Crossovers",
+"description": "Using moving averages (e.g., 10-day crossing above 50-day) as technical indicators to find buy and sell signals, following trends to avoid emotional decisions. Ideal for beginners learning technical analysis and making data-driven trades."
+},
+{
+"name": "Scalping & High-Frequency Trading (HFT)",
+"description": "Exploiting small price gaps multiple times a day, trading on short timeframes like 1-minute or 5-minute charts, and using low-latency interfaces and automated stop-loss/take-profit orders for quick gains. Requires advanced technology and infrastructure."
+},
+{
+"name": "Breakout Trading",
+"description": "Identifying consolidation patterns (e.g., triangles, flags) and entering when price breaks a defined level with volume, using tight stop-loss below the breakout level to catch big moves early."
+},
+{
+"name": "Arbitrage & Statistical Arbitrage",
+"description": "Taking advantage of price differences across exchanges or between trading pairs, using bots or manual strategies to buy low and sell high, with fast execution and low fees required for success."
+},
+{
+"name": "On-Chain & Sentiment Analysis",
+"description": "Using blockchain data (e.g., exchange inflows/outflows, wallet activity) and trader sentiment (e.g., fear & greed index, Twitter sentiment) to predict price moves and support trade decisions."
+},
+{
+"name": "AI-Powered Trading Bots & Automation",
+"description": "Using machine learning models to execute trades based on historical and live data, connected via API to platforms, offering emotion-free, round-the-clock trading based on defined strategies."
+},
+{
+"name": "Spot vs Futures — Leverage and Hedging",
+"description": "Combining spot trading (direct asset purchase) with futures trading (leveraged positions for speculation or hedging), understanding funding rates, margin levels, and liquidation risk to earn yield from price convergence."
+},
+{
+"name": "Staking, Yield Farming & DeFi Leverage",
+"description": "Passive earning by locking tokens or providing liquidity, such as staking ETH or using LP tokens in farms for boosted APY, while monitoring risks like impermanent loss."
+},
+{
+"name": "Trend Trading",
+"description": "Following the market’s direction using indicators like 50-day and 200-day moving averages, RSI, and MACD to identify trends and enter/exit trades at appropriate levels."
+}
+],
+"software": [
+{
+"name": "Freqtrade",
+"description": "A free and open-source crypto trading bot written in Python, designed to support all major exchanges including Binance. It allows extensive strategy testing, running multiple bots simultaneously, and features Telegram integration for control."
+},
+{
+"name": "OctoBot",
+"description": "A flexible and easy-to-use open-source trading bot offering a variety of free strategies like AI-based, smart DCA, and GRID. It supports backtesting, performance tracking, and has an active community; suitable for beginners and experienced users."
+},
+{
+"name": "Hummingbot",
+"description": "An open-source Python framework for building bots on 20+ centralized and decentralized exchanges, including Binance. It specializes in market-making, liquidity mining, arbitrage, and provides pre-built strategy templates with community support."
+},
+{
+"name": "Jesse",
+"description": "An open-source bot designed for simplicity and efficiency in strategy development, supporting various cryptocurrencies and offering a streamlined backtesting environment with clean coding structure and easy customization."
+},
+{
+"name": "Superalgos",
+"description": "A comprehensive open-source trading suite with visual strategy design, extensive data tools like data mining and machine learning. Suitable for individual and professional traders, supporting collaborative strategy development and scalability."
+},
+{
+"name": "Gekko",
+"description": "A popular open-source bot with a web GUI for importing historical data, backtesting strategies, and live trading on supported exchanges like Binance. It features paper/live trading modes, trade notifications, and is ideal for intermediate users."
+},
+{
+"name": "Enigma Catalyst",
+"description": "An algorithmic trading platform built on Zipline for advanced Python developers to develop, backtest, and live trade strategies across 90+ exchanges, including statistical analysis and machine learning integration."
+}
+]
+}
