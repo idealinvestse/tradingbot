@@ -27,3 +27,43 @@ Genererad (UTC): 2025-08-16T19:00:14Z
 
 Nycklar: profit_total, profit_total_abs, sharpe, sortino, max_drawdown_abs, winrate, loss, trades
 
+---
+
+## Förbättrat resultatformat (Observability)
+
+Två nya kolumner har lagts till i rapporten för bättre spårbarhet och reproducerbarhet:
+
+- Data Window – tidsfönstret (UTC) som körningen täcker, i formatet `start_iso..end_iso`.
+  - Källa: `runs.data_window`
+  - Exempel: `2024-01-01T00:00:00+00:00..2024-01-31T00:00:00+00:00`
+- Config Hash – SHA256-hash av backtest‑konfigurationen extraherad från ZIP‑artefakten.
+  - Källa: `experiments.config_hash`
+  - Exempel: `9f2e4b...` (förkortad i dokumentation)
+
+Äldre databaser utan dessa kolumner stöds fortfarande. Rapporten visar `-` om fälten saknas.
+
+### Exempel (utdrag)
+
+| Run ID | Status | Start | Slut | Typ | Data Window | Config Hash | profit_total | profit_total_abs | sharpe | sortino | max_dd_abs | winrate | loss | trades |
+|---|---|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| run_2024_01 | completed | 2024-01-01T00:00:00Z | 2024-01-31T00:00:00Z | backtest | 2024-01-01T00:00:00+00:00..2024-01-31T00:00:00+00:00 | 9f2e4b... | 0.12345679 | 123.45678912 | 1.2345 | 2.3456 | 5.12345679 | 0.6543 | - | 100 |
+
+---
+
+## Generera rapport via CLI
+
+Använd följande CLI för att skriva den senaste resultatrapporten till `user_data/backtest_results/RESULTS.md`:
+
+```bash
+python -m scripts.render_results_report \
+  --db user_data/backtest_results/index.db \
+  --out user_data/backtest_results/RESULTS.md \
+  --limit 50
+```
+
+- `--db` pekar på SQLite‑databasen som byggts av indexeringsstegen.
+- `--out` anger sökvägen för Markdown‑rapporten.
+- `--limit` begränsar antal rader i rapporten.
+
+Rapporten inkluderar automatiskt kolumnerna Data Window och Config Hash om dessa finns i databasen.
+
