@@ -7,6 +7,13 @@ Denna text beskriver hur strategier hanteras idag i projektet, vilka mål vi har
 - **Mål**: Separera strategi‑domänen i en modul som standardiserar metadata, körningar (backtest/hyperopt/paper), mätetal, artefakter och beslut. Säkerställa reproducerbarhet och uppmuntra idégenerering via lättviktigt arbetsflöde och tydligt mätsystem.
 - **Förslag**: Lägg till `app/strategies/` med tjänster för registry, introspektion, körningsorkestrering, mätinsamling, persistens (SQLite) och rapporter. Komplettera med CLI/scripts samt CI‑steg för validering och dokumentgenerering.
 
+## Implementationsstatus (2025-08-25)
+- Precision: `decimal.Decimal` används genomgående för monetära värden i `metrics.py` (inkl. kvantisering 8 dp vid DB‑gränsen) och i `reporting.py` (visning 8 dp). Regressionstester täcker precisionen.
+- Validering: Stärkta Pydantic‑modeller för backtest/hyperopt‑payloads. Indexering validerar artefakter innan persistens.
+- Risk: `RiskManager` har circuit breaker, concurrency‑locks, drawdown‑guardrails och live‑begränsningar; ny `log_incident()` persisterar till tabellen `incidents` och loggar strukturerat JSON.
+- CI: GitHub Actions `ci.yml` kör `pytest`, `ruff`, `black --check`, `mypy`, `safety`. Alla steg gröna lokalt.
+- Dokumentation: `README.md`, `docs/RUNBOOK.md` och `docs/ROADMAP.md` uppdaterade med ovan.
+
 ## Nuläge i repo
 - Strategier (Freqtrade): `user_data/strategies/*.py` (t.ex. `MaCrossoverStrategy`, `WmaStochSwingStrategy`).
 - Register (källa): `docs/strategies_registry.json` → genererar `docs/STRATEGIES.md` via `scripts/strategies_registry_sync.py`.

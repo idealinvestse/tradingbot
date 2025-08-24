@@ -6,6 +6,50 @@ Denna roadmap fokuserar på en säker och reproducerbar väg till produktionsdug
 - `scripts/strategy_cli.py` (+ registry-skript)
 - Artefakter i `user_data/backtest_results/` och `user_data/hyperopt_results/`
 
+## Status (2025-08-25)
+- Precision: `Decimal` med 8 decimalers kvantisering integrerad i `app/strategies/metrics.py` (inkl. `_upsert_metric`) och `reporting.py`; rapporter formaterar pengar till 8 dp.
+- Validering & tester: Pydantic-modeller för backtest/hyperopt stärkt; regressionstester för parsning och rapportering (`tests/test_hyperopt_metrics.py`, `tests/test_metrics.py`, `tests/test_reporting.py`).
+- Risk: `RiskManager` utökad med circuit breaker, samtidighets‑locks, drawdown‑guardrails och live‑begränsningar; ny `log_incident()` persisterar till `incidents` i SQLite; täckande tester; CLI `scripts/circuit_breaker.py`.
+- CI: GitHub Actions `.github/workflows/ci.yml` med `pytest`, `ruff`, `black --check`, `mypy`, `safety`; grönt lokalt.
+- Docs: `docs/RUNBOOK.md` uppdaterad med incidentloggning och CI; `README.md` kompletterad med CI/precision.
+
+## Nästa 5 steg (kärnkategorier)
+
+### Observability & Loggning
+1) Central logg‑fabrik i `app/` (JSON + correlation_id injection).
+2) Mätvärden i `metrics.py`: parse‑latens, indexerade runs, felräknare.
+3) `reporting.py`: inkludera konfig‑hash/datafönster i rapporter.
+4) Spec för Grafana dashboards; definiera exportformat.
+5) Incident‑rapportgenerator (Markdown) från `incidents`.
+
+### Risk & Orderpolicy
+1) Post‑trade audit: slippage och orderlatens som metrics.
+2) Automatisk CB‑trigger vid upprepade fel/avvikelser (policy + tests).
+3) Per‑strategi exponeringsgränser (feature flag via env/konfig).
+4) Idempotenta order‑ID (design + tests) för live‑läge.
+5) Enhetliga riskhändelsekoder och dokumenterad severity‑taxonomy.
+
+### Data & Reproducerbarhet
+1) Logga `schema_version`, seeds och konfig‑hash per run i DB.
+2) Checksums (SHA256) för artefakter i `artifacts`‑tabellen.
+3) Datafönster‑metadata (UTC) i `runs.data_window` och rapport.
+4) CLI‑indexering i `scripts/strategy_cli.py` med dubblettskydd.
+5) Regression “golden master” för utvalda strategier.
+
+### CI/CD & Supply Chain
+1) Cacha testdata/venv för snabbare pipelines.
+2) Publicera test‑artefakter (rapport/coverage) i Actions.
+3) Coverage‑gate (ex. 80% för `app/`).
+4) Safety/dep‑scan rapport som artifacts och badge.
+5) PR‑mall med checklista från `CODE_GUIDELINES.md`.
+
+### Dokumentation & Runbooks
+1) `RESULTS.md`: sektion för incidenter senaste veckan.
+2) `RUNBOOK.md`: loggnivåpolicy och examples (JSON snippets).
+3) ADR om penningprecision/SQLite‑schema och beslut.
+4) DX‑guide: pre‑commit‑hooks installation och användning.
+5) README‑badge för CI‑status.
+
 ## Lane 1 — Arkitektur & Orkestrering (Runtime)
 - Mål: Enhetligt, idempotent körnav för backtest/hyperopt/paper/live med tydliga kontrakt och loggning.
 - Ägare: Runtime Maintainer (backup: Windsurf-agent). Beroenden: Observability, Risk.

@@ -4,10 +4,15 @@ import hashlib
 import json
 import zipfile
 import re
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Tuple
+import uuid
+
+from .logging_utils import get_json_logger
 
 from .persistence.sqlite import connect, ensure_schema
 
@@ -59,6 +64,11 @@ def parse_backtest_meta(meta_path: Path) -> Optional[BacktestMeta]:
     strat_class = next(iter(data.keys()))
     payload = data[strat_class]
 
+    # Optional validation via Pydantic if available
+    _ok, _reason = _validate_backtest_payload(payload)
+    if not _ok:
+        return None
+
     return BacktestMeta(
         strategy_class=str(strat_class),
         run_id=str(payload.get('run_id')) if payload.get('run_id') else meta_path.stem,
@@ -68,16 +78,17 @@ def parse_backtest_meta(meta_path: Path) -> Optional[BacktestMeta]:
     )
 
 
-def _upsert_experiment(cur, exp_id: str, idea_id: str, strategy_id: str, timeframe: Optional[str], start_iso: Optional[str], end_iso: Optional[str]) -> None:
+def _upsert_experiment(cur, exp_id: str, idea_id: str, strategy_id: str, timeframe: Optional[str], start_iso: Optional[str], end_iso: Optional[str], config_hash: Optional[str] = None) -> None:
     cur.execute(
         """
         INSERT INTO experiments (
             id, idea_id, strategy_id, hypothesis, timeframe, markets, period_start_utc, period_end_utc, seed, config_hash, created_utc
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, datetime('now'))
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, datetime('now'))
         ON CONFLICT(id) DO UPDATE SET
             timeframe=excluded.timeframe,
             period_start_utc=excluded.period_start_utc,
-            period_end_utc=excluded.period_end_utc
+            period_end_utc=excluded.period_end_utc,
+            config_hash=excluded.config_hash
         """,
         (
             exp_id,
@@ -88,22 +99,24 @@ def _upsert_experiment(cur, exp_id: str, idea_id: str, strategy_id: str, timefra
             "",
             start_iso or "",
             end_iso or "",
+            config_hash or "",
         ),
     )
 
 
-def _upsert_run(cur, run_id: str, experiment_id: str, kind: str, started_iso: Optional[str], finished_iso: Optional[str], status: str, artifacts_path: Optional[str]) -> None:
+def _upsert_run(cur, run_id: str, experiment_id: str, kind: str, started_iso: Optional[str], finished_iso: Optional[str], status: str, artifacts_path: Optional[str], data_window: Optional[str] = None) -> None:
     cur.execute(
         """
         INSERT INTO runs (
             id, experiment_id, kind, started_utc, finished_utc, status, docker_image, freqtrade_version, config_json, data_window, artifacts_path
-        ) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
             experiment_id=excluded.experiment_id,
             kind=excluded.kind,
             started_utc=excluded.started_utc,
             finished_utc=excluded.finished_utc,
             status=excluded.status,
+            data_window=excluded.data_window,
             artifacts_path=excluded.artifacts_path
         """,
         (
@@ -113,12 +126,17 @@ def _upsert_run(cur, run_id: str, experiment_id: str, kind: str, started_iso: Op
             started_iso or "",
             finished_iso or "",
             status,
+            data_window or "",
             artifacts_path,
         ),
     )
 
 
 def _upsert_metric(cur, run_id: str, key: str, value: float) -> None:
+    # Use Decimal for monetary values to maintain precision
+    # Quantize to 8 decimal places to match the precision used in _parse_zip_metrics
+    # Only cast to float at the DB boundary as the schema uses REAL
+    decimal_value = Decimal(str(value)).quantize(Decimal('0.00000001'))
     cur.execute(
         """
         INSERT INTO metrics (run_id, key, value)
@@ -126,7 +144,7 @@ def _upsert_metric(cur, run_id: str, key: str, value: float) -> None:
         ON CONFLICT(run_id, key) DO UPDATE SET
             value=excluded.value
         """,
-        (run_id, key, float(value)),
+        (run_id, key, float(decimal_value)),
     )
 
 
@@ -164,14 +182,25 @@ def _parse_zip_metrics(zip_path: Path) -> Dict[str, float]:
                 strat_name = next(iter(strat.keys()))
                 sd = strat.get(strat_name, {})
                 if isinstance(sd, dict):
-                    for k in (
-                        'profit_total', 'profit_total_abs', 'profit_mean', 'profit_median',
-                        'cagr', 'expectancy', 'expectancy_ratio', 'sortino', 'sharpe', 'calmar',
-                        'sqn', 'profit_factor', 'trades_per_day', 'market_change',
-                    ):
+                    # Use Decimal for monetary values to maintain precision internally
+                    # Only cast to float at the end for DB storage
+                    monetary_keys = ('profit_total', 'profit_total_abs', 'profit_mean', 'profit_median',
+                                   'cagr', 'expectancy', 'expectancy_ratio', 'market_change')
+                    
+                    for k in monetary_keys:
+                        v = sd.get(k)
+                        if isinstance(v, (int, float)):
+                            # Use Decimal for precision, then convert to float for DB storage
+                            decimal_v = Decimal(str(v)).quantize(Decimal('0.00000001'))
+                            out[k] = float(decimal_v)
+                    
+                    # Non-monetary keys that can remain as regular floats
+                    for k in ('sortino', 'sharpe', 'calmar', 'sqn', 'profit_factor', 
+                             'trades_per_day'):
                         v = sd.get(k)
                         if isinstance(v, (int, float)):
                             out[k] = float(v)
+                    
                     # total_trades
                     tt = sd.get('total_trades') or sd.get('trades')
                     if isinstance(tt, (int, float)):
@@ -191,12 +220,21 @@ def _parse_zip_metrics(zip_path: Path) -> Dict[str, float]:
                 if chosen is None and isinstance(comp[0], dict):
                     chosen = comp[0]
                 if isinstance(chosen, dict):
-                    for k in (
-                        'wins', 'losses', 'draws', 'winrate', 'profit_total', 'profit_total_abs',
-                        'profit_mean', 'profit_total_pct', 'duration_avg', 'sortino', 'sharpe',
-                        'calmar', 'sqn', 'profit_factor', 'max_drawdown_account', 'max_drawdown_abs',
-                        'trades',
-                    ):
+                    # Use Decimal for monetary values to maintain precision internally
+                    # Only cast to float at the end for DB storage
+                    monetary_keys = ('profit_total', 'profit_total_abs', 'profit_mean', 
+                                   'profit_total_pct', 'max_drawdown_account', 'max_drawdown_abs')
+                    
+                    for k in monetary_keys:
+                        v = chosen.get(k)
+                        if isinstance(v, (int, float)):
+                            # Use Decimal for precision, then convert to float for DB storage
+                            decimal_v = Decimal(str(v)).quantize(Decimal('0.00000001'))
+                            out[k] = float(decimal_v)
+                    
+                    # Non-monetary keys that can remain as regular floats
+                    for k in ('wins', 'losses', 'draws', 'winrate', 'duration_avg', 'sortino', 
+                             'sharpe', 'calmar', 'sqn', 'profit_factor', 'trades'):
                         v = chosen.get(k)
                         if isinstance(v, (int, float)):
                             out[k] = float(v)
@@ -211,27 +249,75 @@ def index_backtests(backtests_dir: Path, db_path: Path) -> int:
 
     Returns number of indexed runs.
     """
+    cid = uuid.uuid4().hex
+    logger = get_json_logger(
+        "metrics",
+        static_fields={"correlation_id": cid, "op": "index_backtests"},
+    )
     conn = connect(db_path)
     ensure_schema(conn, with_extended=True)
     cur = conn.cursor()
 
     count = 0
+    meta_invalid_count = 0
     for meta_path in sorted(backtests_dir.glob("*.meta.json")):
+        logger.info("scan_meta", extra={"path": str(meta_path)})
+        t0 = time.perf_counter()
         meta = parse_backtest_meta(meta_path)
         if not meta:
+            logger.warning("meta_invalid", extra={"path": str(meta_path)})
+            meta_invalid_count += 1
             continue
 
         # Create synthetic IDs to tie together minimal experiment/run lineage
         strategy_id = meta.strategy_class  # if registry uses IDs differently, this is a placeholder
         exp_id = f"exp:{strategy_id}:{meta.timeframe or ''}:{meta.start_ts or ''}-{meta.end_ts or ''}"
-        _upsert_experiment(cur, exp_id, idea_id=f"idea:auto:{strategy_id}", strategy_id=strategy_id,
-                           timeframe=meta.timeframe, start_iso=meta.start_iso, end_iso=meta.end_iso)
+        # Try to discover config hash inside ZIP (if present)
+        config_hash: Optional[str] = None
+        zip_candidate = meta_path.with_suffix(".zip")
+        if not zip_candidate.exists():
+            prefix = meta_path.name.rsplit(".meta.json", 1)[0]
+            zips = list(meta_path.parent.glob(prefix + "*.zip"))
+            if zips:
+                zip_candidate = zips[0]
+        if zip_candidate.exists():
+            try:
+                with zipfile.ZipFile(zip_candidate) as zf:
+                    cfg_names = [n for n in zf.namelist() if n.endswith("_config.json")]
+                    if cfg_names:
+                        cfg_bytes = zf.read(cfg_names[0])
+                        config_hash = hashlib.sha256(cfg_bytes).hexdigest()
+            except Exception:
+                # best-effort only
+                config_hash = None
+
+        _upsert_experiment(
+            cur,
+            exp_id,
+            idea_id=f"idea:auto:{strategy_id}",
+            strategy_id=strategy_id,
+            timeframe=meta.timeframe,
+            start_iso=meta.start_iso,
+            end_iso=meta.end_iso,
+            config_hash=config_hash,
+        )
 
         # Run record
         artifacts_dir = str(meta_path.parent)
-        _upsert_run(cur, meta.run_id, experiment_id=exp_id, kind="backtest",
-                    started_iso=meta.start_iso, finished_iso=meta.end_iso,
-                    status="completed", artifacts_path=artifacts_dir)
+        data_window = None
+        if meta.start_iso and meta.end_iso:
+            data_window = f"{meta.start_iso}..{meta.end_iso}"
+        _upsert_run(
+            cur,
+            meta.run_id,
+            experiment_id=exp_id,
+            kind="backtest",
+            started_iso=meta.start_iso,
+            finished_iso=meta.end_iso,
+            status="completed",
+            artifacts_path=artifacts_dir,
+            data_window=data_window,
+        )
 
         # Minimal metrics we can infer now
         if meta.start_ts is not None and meta.end_ts is not None:
@@ -255,10 +341,16 @@ def index_backtests(backtests_dir: Path, db_path: Path) -> int:
             for k, v in metrics.items():
                 _upsert_metric(cur, meta.run_id, k, v)
 
+        # Per-run parse latency in milliseconds
+        dt_ms = (time.perf_counter() - t0) * 1000.0
+        _upsert_metric(cur, meta.run_id, "parse_ms", dt_ms)
+
         count += 1
+        logger.info("meta_indexed", extra={"run_id": meta.run_id})
 
     conn.commit()
     conn.close()
+    logger.info("index_done", extra={"count": count, "db_path": str(db_path), "meta_invalid": meta_invalid_count})
     return count
 
 
@@ -282,6 +374,11 @@ def index_hyperopts(hyperopt_dir: Path, db_path: Path) -> int:
     We write one row in `runs` per trial (kind='hyperopt') and store numeric params
     as metrics with prefix 'param.' along with 'loss' and 'trades' (if available).
     """
+    cid = uuid.uuid4().hex
+    logger = get_json_logger(
+        "metrics",
+        static_fields={"correlation_id": cid, "op": "index_hyperopts"},
+    )
     conn = connect(db_path)
     ensure_schema(conn, with_extended=True)
     cur = conn.cursor()
@@ -289,7 +386,11 @@ def index_hyperopts(hyperopt_dir: Path, db_path: Path) -> int:
     ts_re = re.compile(r"_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\\.fthypt$")
 
     count = 0
+    trial_json_error_count = 0
+    trial_invalid_count = 0
+    file_parse_error_count = 0
     for f in sorted(hyperopt_dir.glob("*.fthypt")):
+        logger.info("scan_fthypt", extra={"path": str(f)})
         name = f.name
         m = ts_re.search(name)
         if not m:
@@ -332,9 +433,18 @@ def index_hyperopts(hyperopt_dir: Path, db_path: Path) -> int:
                     line = line.strip()
                     if not line:
                         continue
+                    t0 = time.perf_counter()
                     try:
                         rec = json.loads(line)
                     except Exception:
+                        logger.warning("trial_json_error", extra={"file": name})
+                        trial_json_error_count += 1
+                        continue
+
+                    # Optional validation
+                    if not _validate_hyperopt_trial(rec):
+                        logger.warning("trial_invalid", extra={"file": name})
+                        trial_invalid_count += 1
                         continue
 
                     trial_idx += 1
@@ -348,6 +458,7 @@ def index_hyperopts(hyperopt_dir: Path, db_path: Path) -> int:
                         finished_iso=t_iso,
                         status="completed",
                         artifacts_path=str(f.parent),
+                        data_window=None,
                     )
 
                     # metrics: loss
@@ -376,11 +487,160 @@ def index_hyperopts(hyperopt_dir: Path, db_path: Path) -> int:
                         _upsert_artifact(cur, run_id, name=name, path=str(f), sha256=file_sha)
                         file_artifact_added = True
 
+                    # Per-run parse latency in milliseconds
+                    dt_ms = (time.perf_counter() - t0) * 1000.0
+                    _upsert_metric(cur, run_id, "parse_ms", dt_ms)
+
                     count += 1
         except Exception:
             # best-effort parsing per file
+            logger.warning("file_parse_error", extra={"path": str(f)})
+            file_parse_error_count += 1
             continue
 
     conn.commit()
     conn.close()
+    logger.info("index_done", extra={"count": count, "db_path": str(db_path)})
     return count
+
+
+# ---- Optional Pydantic validation helpers ----
+try:
+    from pydantic import BaseModel
+    try:
+        from pydantic import ConfigDict, model_validator  # v2
+        _PYD_V2 = True
+    except Exception:  # pragma: no cover - depends on pydantic version
+        _PYD_V2 = False
+        from pydantic import Extra, validator  # type: ignore
+
+    if _PYD_V2:
+        class _BacktestPayloadModel(BaseModel):  # type: ignore[misc]
+            run_id: Optional[str] = None
+            timeframe: Optional[str] = None
+            backtest_start_ts: Optional[int] = None
+            backtest_end_ts: Optional[int] = None
+
+            model_config = ConfigDict(extra='allow')
+            
+            # Add field validators for better type checking
+            @model_validator(mode='before')
+            @classmethod
+            def validate_timestamps(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+                start_ts = values.get('backtest_start_ts')
+                end_ts = values.get('backtest_end_ts')
+                
+                # Ensure timestamps are reasonable (Unix timestamps)
+                if start_ts is not None and not isinstance(start_ts, (int, float)):
+                    raise ValueError('backtest_start_ts must be a number')
+                if end_ts is not None and not isinstance(end_ts, (int, float)):
+                    raise ValueError('backtest_end_ts must be a number')
+                
+                # Ensure start is before end if both are present
+                if start_ts is not None and end_ts is not None:
+                    if start_ts >= end_ts:
+                        raise ValueError('backtest_start_ts must be before backtest_end_ts')
+                
+                return values
+    else:
+        class _BacktestPayloadModel(BaseModel):  # type: ignore[misc]
+            run_id: Optional[str] = None
+            timeframe: Optional[str] = None
+            backtest_start_ts: Optional[int] = None
+            backtest_end_ts: Optional[int] = None
+
+            class Config:
+                extra = Extra.allow  # type: ignore[attr-defined]
+                
+            # Add field validators for better type checking
+            @validator('backtest_start_ts', 'backtest_end_ts')
+            def validate_timestamps(cls, v: Any, field: 'ModelField') -> Any:  # type: ignore[name-defined]
+                if v is not None and not isinstance(v, (int, float)):
+                    raise ValueError(f'{field.name} must be a number')
+                return v
+
+    if _PYD_V2:
+        class _HyperoptTrialModel(BaseModel):  # type: ignore[misc]
+            loss: Optional[float] = None
+            params_dict: Optional[Dict[str, Any]] = None
+            results_metrics: Optional[Dict[str, Any]] = None
+
+            model_config = ConfigDict(extra='allow')
+            
+            # Add field validators for better type checking
+            @model_validator(mode='before')
+            @classmethod
+            def validate_trial(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+                # Validate loss is a number if present
+                loss = values.get('loss')
+                if loss is not None and not isinstance(loss, (int, float)):
+                    raise ValueError('loss must be a number')
+                
+                # Validate params_dict is a dict if present
+                params = values.get('params_dict')
+                if params is not None and not isinstance(params, dict):
+                    raise ValueError('params_dict must be a dictionary')
+                
+                # Validate results_metrics is a dict if present
+                metrics = values.get('results_metrics')
+                if metrics is not None and not isinstance(metrics, dict):
+                    raise ValueError('results_metrics must be a dictionary')
+                
+                return values
+    else:
+        class _HyperoptTrialModel(BaseModel):  # type: ignore[misc]
+            loss: Optional[float] = None
+            params_dict: Optional[Dict[str, Any]] = None
+            results_metrics: Optional[Dict[str, Any]] = None
+
+            class Config:
+                extra = Extra.allow  # type: ignore[attr-defined]
+                
+            # Add field validators for better type checking
+            @validator('loss')
+            def validate_loss(cls, v: Any) -> Any:  # type: ignore[name-defined]
+                if v is not None and not isinstance(v, (int, float)):
+                    raise ValueError('loss must be a number')
+                return v
+            
+            @validator('params_dict', 'results_metrics')
+            def validate_dict_fields(cls, v: Any, field: 'ModelField') -> Any:  # type: ignore[name-defined]
+                if v is not None and not isinstance(v, dict):
+                    raise ValueError(f'{field.name} must be a dictionary')
+                return v
+
+    _PYDANTIC_OK = True
+except Exception:  # pragma: no cover - pydantic not installed
+    _PYDANTIC_OK = False
+    _BacktestPayloadModel = None  # type: ignore[assignment]
+    _HyperoptTrialModel = None  # type: ignore[assignment]
+
+
+def _validate_backtest_payload(payload: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+    """Validate backtest payload with Pydantic if available; otherwise run soft checks."""
+    if _PYDANTIC_OK and _BacktestPayloadModel is not None:
+        try:
+            _BacktestPayloadModel.model_validate(payload)  # type: ignore[attr-defined]
+            return True, None
+        except Exception as e:  # pragma: no cover - validation error
+            return False, str(e)
+    # Soft validation
+    if not isinstance(payload, dict):
+        return False, "payload_not_dict"
+    # If present, ensure types are reasonable
+    for k in ("backtest_start_ts", "backtest_end_ts"):
+        v = payload.get(k)
+        if v is not None and not isinstance(v, (int, float)):
+            return False, f"{k}_not_number"
+    return True, None
+
+
+def _validate_hyperopt_trial(rec: Dict[str, Any]) -> bool:
+    if _PYDANTIC_OK and _HyperoptTrialModel is not None:
+        try:
+            _HyperoptTrialModel.model_validate(rec)  # type: ignore[attr-defined]
+            return True
+        except Exception:  # pragma: no cover
+            return False
+    # Soft validation
+    return isinstance(rec, dict)

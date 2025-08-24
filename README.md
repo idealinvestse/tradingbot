@@ -59,6 +59,25 @@ Kortfattat:
 - Strategier ligger i `user_data/strategies/` (ex. `ma_crossover_strategy.py`, `mean_reversion_bb.py`).
 - Konfigfiler i `user_data/configs/` (testnet/mainnet/backtest).
 
+## Konsolideringsfas (mot produktion)
+Det pågår en konsolidering för att höja produktsäkerhet och spårbarhet:
+- Strukturerad JSON-loggning med korrelations-ID i `app/strategies/` (runner, metrics, reporting).
+- Pydantic-validering av artefakter (backtest/hyperopt) vid indexering.
+- RiskManager‑guardrails (grund, utökas med drawdown/samtidighet/exponering).
+- Regressions- och property‑baserade tester; CI-gates (ruff/black/isort/mypy/pytest/safety).
+- Prometheus‑kompatibla mätvärden (plan) och DR‑rutiner med backup/restore.
+- Default: testnet/paper; inga hemligheter i repo.
+
+## CI och kvalitetsgrindar
+- GitHub Actions workflow: `.github/workflows/ci.yml`
+- Kör: `pytest`, `ruff`, `black --check`, `mypy app/`, `safety check`
+- Krav: alla steg måste passera innan merge till `main`.
+
+## Precision & incidentloggning
+- Monetära värden hanteras med `decimal.Decimal` och kvantiseras till 8 decimaler i `app/strategies/metrics.py` och `reporting.py`.
+- Rapporter visar monetära värden med 8 decimalers precision (se `tests/test_reporting.py`).
+- Riskincidenter loggas via `RiskManager.log_incident()` till SQLite‑tabellen `incidents` och till strukturerad JSON‑logg.
+
 ## Var hamnar resultat?
 - Backtest: `user_data/backtest_results/` (JSON och ZIP-rapporter, t.ex. `.meta.json`, `.zip`).
 - Hyperopt: `user_data/hyperopt_results/` (fthypt-filer).
@@ -94,8 +113,14 @@ Kortfattat:
 ## Vidare läsning
 - Riktlinjer och utvecklingsstandard: `docs/CODE_GUIDELINES.md`
 - Operativ körning & incidenter: `docs/RUNBOOK.md`
+- Roadmap och konsolideringsplan: `docs/ROADMAP.md`
 - Strategiregister och strategiöversikt: `docs/STRATEGIES.md`
 - Script och verktyg: `scripts/README.md`
+
+### Backup/Restore (artefakter och SQLite‑register)
+- Skapa backup: `py -3 scripts/backup_restore.py backup`
+- Återställ: `py -3 scripts/backup_restore.py restore <sökväg_till_backup>`
+- Arkiverar/återställer: `user_data/backtest_results/`, `user_data/hyperopt_results/`, `user_data/registry/*.sqlite`, (valfritt) `user_data/logs/`.
 
 ## Träd
 ```

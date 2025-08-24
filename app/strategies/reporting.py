@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import sqlite3
+from decimal import Decimal
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
+import uuid
+
+from .logging_utils import get_json_logger
 
 
 def _csv(values: List[Any] | None, dash: str = "-") -> str:
@@ -22,6 +26,9 @@ def generate_markdown(registry: Dict[str, Any]) -> str:
 
     Uses UTC for timestamp if registry lacks updated_utc.
     """
+    cid = uuid.uuid4().hex
+    logger = get_json_logger("reporting", static_fields={"correlation_id": cid, "op": "generate_markdown"})
+    logger.info("start", extra={"strategies": len(registry.get("strategies", []))})
     updated = registry.get("updated_utc") or datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     lines: List[str] = []
@@ -118,7 +125,9 @@ def generate_markdown(registry: Dict[str, Any]) -> str:
         )
     lines.append("")
 
-    return "\n".join(lines) + "\n"
+    out = "\n".join(lines) + "\n"
+    logger.info("done", extra={"lines": len(lines)})
+    return out
 
 
 def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
@@ -126,6 +135,9 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
 
     Shows latest runs ordered by finished_utc (desc) with selected metrics.
     """
+    cid = uuid.uuid4().hex
+    logger = get_json_logger("reporting", static_fields={"correlation_id": cid, "op": "results_report"})
+    logger.info("start", extra={"db_path": str(db_path), "limit": limit})
     keys = [
         "profit_total",
         "profit_total_abs",
@@ -142,10 +154,28 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
             "SELECT key, value FROM metrics WHERE run_id = ?",
             (run_id,),
         )
-        return {k: float(v) for k, v in cur.fetchall()}
+        # Use Decimal for monetary values to maintain precision when displaying
+        # Only convert to float for display purposes
+        result = {}
+        for k, v in cur.fetchall():
+            # For monetary values, use Decimal for better precision
+            monetary_keys = ('profit_total', 'profit_total_abs', 'max_drawdown_abs')
+            if k in monetary_keys:
+                decimal_v = Decimal(str(v)).quantize(Decimal('0.00000001'))
+                result[k] = float(decimal_v)
+            else:
+                result[k] = float(v)
+        return result
 
     con = sqlite3.connect(db_path)
     cur = con.cursor()
+    # Detect optional columns/tables for backward compatibility
+    cur.execute("PRAGMA table_info(runs)")
+    run_cols = {r[1] for r in cur.fetchall()}  # type: ignore[index]
+    cur.execute("PRAGMA table_info(experiments)")
+    exp_cols = {r[1] for r in cur.fetchall()}  # type: ignore[index]
+
+    # Always select the core columns; we'll fetch optional fields per-row later
     cur.execute(
         "SELECT id, experiment_id, kind, started_utc, finished_utc, status FROM runs ORDER BY finished_utc DESC LIMIT ?",
         (limit,),
@@ -162,20 +192,47 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
 
     if not rows:
         lines.append("Inga körningar hittades.")
-        return "\n".join(lines) + "\n"
+        out = "\n".join(lines) + "\n"
+        logger.info("done", extra={"rows": 0})
+        return out
 
-    # Table header
+    # Table header (include Data Window and Config Hash)
     lines.append(
-        "| Run ID | Status | Start | Slut | Typ | profit_total | profit_total_abs | sharpe | sortino | max_dd_abs | winrate | loss | trades |"
+        "| Run ID | Status | Start | Slut | Typ | Data Window | Config Hash | profit_total | profit_total_abs | sharpe | sortino | max_dd_abs | winrate | loss | trades |"
     )
-    lines.append("|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|")
+    lines.append("|---|---|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|")
 
     con = sqlite3.connect(db_path)
     cur = con.cursor()
+    # Re-compute presence flags in this connection
+    cur.execute("PRAGMA table_info(runs)")
+    run_cols = {r[1] for r in cur.fetchall()}  # type: ignore[index]
+    cur.execute("PRAGMA table_info(experiments)")
+    exp_cols = {r[1] for r in cur.fetchall()}  # type: ignore[index]
     for rid, exp, kind, started, finished, status in rows:
         mmap = _mmap(cur, rid)
         vals = [mmap.get(k, None) for k in keys]
-        fmt = lambda x: (f"{x:.6g}" if isinstance(x, (int, float)) else "-")
+        fmt = lambda x: (f"{x:.8f}" if isinstance(x, (int, float)) else "-")
+        # Optional fields with graceful fallback
+        data_window = "-"
+        if "data_window" in run_cols:
+            try:
+                cur.execute("SELECT data_window FROM runs WHERE id = ?", (rid,))
+                dw_row = cur.fetchone()
+                if dw_row and dw_row[0]:
+                    data_window = str(dw_row[0])
+            except Exception:
+                data_window = "-"
+
+        config_hash = "-"
+        if "config_hash" in exp_cols:
+            try:
+                cur.execute("SELECT config_hash FROM experiments WHERE id = ?", (exp,))
+                ch_row = cur.fetchone()
+                if ch_row and ch_row[0]:
+                    config_hash = str(ch_row[0])
+            except Exception:
+                config_hash = "-"
         lines.append(
             "| "
             + " | ".join(
@@ -185,6 +242,8 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
                     started or "-",
                     finished or "-",
                     kind or "-",
+                    data_window,
+                    config_hash,
                     *[fmt(v) for v in vals],
                 ]
             )

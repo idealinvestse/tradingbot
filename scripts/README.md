@@ -42,3 +42,91 @@ at_utc,pair,amount
 - Tidszon? Ange alltid tider i UTC (`Z` på slutet). Filen skriver ut tider i UTC.
 - Kan jag byta valuta? Ja, men skriptet tolkar `amount_usdt` som stake-valuta-belopp. Anpassa namn/kolumn efter behov.
 
+## Backup/Restore (`backup_restore.py`)
+Skapar och återställer backup av artefakter och SQLite‑register under `user_data/`.
+
+- Skapa backup (default `user_data/backups/`):
+  ```powershell
+py -3 scripts/backup_restore.py backup
+```
+  Flaggar:
+  - `--logs` inkluderar `user_data/logs/` i backupen (zippad)
+  - `--out <dir>` anger alternativ backupkatalog
+  - `--no-backtests`/`--no-hyperopts`/`--no-registry` för att exkludera delar
+
+- Återställ från backup:
+  ```powershell
+py -3 scripts/backup_restore.py restore user_data\backups\backup_YYYYmmdd_HHMMSS --overwrite
+```
+  Delmängd:
+  - `--only registry|backtests|hyperopts|logs` (kan upprepas)
+
+Rekommenderat: Kör restore i test/paper‑miljö först innan live.
+
+## Circuit Breaker (`circuit_breaker.py`)
+Styr circuit breaker‑läget (på/av/status). Skriver/läser `circuit_breaker.json` under `user_data/state/` som standard.
+
+### Exempel (Windows PowerShell)
+```powershell
+py -3 scripts/circuit_breaker.py status --state-dir user_data\state
+py -3 scripts/circuit_breaker.py enable --reason "manual" --minutes 60 --state-dir user_data\state
+py -3 scripts/circuit_breaker.py disable --state-dir user_data\state
+```
+
+Flaggor:
+- `--file <path>` pekar direkt på CB‑filen och åsidosätter `--state-dir`.
+- `--minutes <N>` varaktighet i minuter.
+- `--until 2025-08-17T10:15:00Z` alternativt absolut UTC‑tidpunkt.
+
+## Live‑runner (`run_live.py`)
+Startar `freqtrade trade` via vår runner med RiskManager‑guardrails (CB, live‑concurrent trades, per‑market exposure). Du kan ange aktuell kontext så att guardrails kan bedömas innan start.
+
+## Strategy CLI (`strategy_cli.py`)
+
+Detta är det centrala CLI-verktyget för att hantera strategiregister, dokumentation och databasexporter. Det ersätter det gamla `strategies_registry_sync.py`-skriptet.
+
+### Kommandon
+
+- `docs`: Genererar `docs/STRATEGIES.md` från registry JSON
+- `export-db`: Exporterar registry JSON till SQLite-databas
+- `index-backtests`: Indexerar backtestresultat till SQLite-databasen
+- `index-hyperopts`: Indexerar hyperoptresultat till SQLite-databasen
+- `report-results`: Genererar Markdown-rapport från SQLite-resultatdatabasen
+- `all`: Kör både `docs` och `export-db`
+- `introspect`: Skannar `user_data/strategies` och skapar en JSON-sammanfattning
+
+### Exempel (Windows PowerShell)
+```powershell
+# Generera dokumentation från registry
+py -3 scripts/strategy_cli.py docs
+
+# Exportera registry till SQLite-databas
+py -3 scripts/strategy_cli.py export-db
+
+# Indexera backtestresultat
+py -3 scripts/strategy_cli.py index-backtests
+
+# Generera resultatrapport
+py -3 scripts/strategy_cli.py report-results
+
+# Kör alla registeroperationer
+py -3 scripts/strategy_cli.py all
+```
+
+## Strategiregistry Sync (DEPRECATED)
+
+Skriptet `strategies_registry_sync.py` är nu föråldrat och ersatt av `strategy_cli.py`. Använd `strategy_cli.py docs` istället för att generera dokumentation från registry JSON.
+
+### Exempel (Windows PowerShell)
+```powershell
+py -3 scripts/run_live.py --config user_data\configs\config.mainnet.json --strategy MaCrossoverStrategy `
+  --open-trades 3 --exposure BTC/USDT=25% --exposure ETH/USDT=0.15
+```
+
+Flaggor:
+- `--config <path>` (krävs) – Freqtrade‑konfig.
+- `--strategy <Name>` (valfri) – Strategiklass; kan annars läsas från konfig.
+- `--open-trades <N>` – Aktuellt antal öppna trades (int).
+- `--exposure <mkt=val>` (repetera) – Per‑marknadsexponering. Accepterar `25%` eller `0.25`.
+- `--extra <arg>` (repetera) – Extra CLI‑flaggor som skickas vidare till `freqtrade`.
+- `--correlation-id <id>` – Eget korrelations‑ID i loggar.

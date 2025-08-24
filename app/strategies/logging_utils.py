@@ -71,3 +71,18 @@ def get_json_logger(
 
     adapter = logging.LoggerAdapter(logger, extra=static_fields or {})
     return adapter
+
+
+def get_context_logger(
+    name: str,
+    context: Optional[Dict[str, Any]] = None,
+    *,
+    log_path: Optional[Path] = None,
+    level: int = logging.INFO,
+) -> logging.LoggerAdapter:
+    """Convenience wrapper to obtain a JSON logger with contextual fields.
+
+    Example:
+        logger = get_context_logger("risk", {"correlation_id": cid, "run_id": run_id})
+    """
+    return get_json_logger(name, log_path=log_path, level=level, static_fields=context)
