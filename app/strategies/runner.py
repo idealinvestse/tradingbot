@@ -1,11 +1,21 @@
 from __future__ import annotations
 
+import datetime
+import json
 import subprocess
 import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Optional
+
+from app.data_services.news_fetcher import DemoNewsFetcher
+from app.data_services.sentiment_analyzer import DemoSentimentAnalyzer
+from app.strategies.persistence.sqlite import (
+    connect,
+    ensure_schema,
+    upsert_news_articles,
+)
 
 from .logging_utils import get_json_logger
 from .risk import RiskManager
@@ -262,6 +272,61 @@ def run_live(
         rm.release_run_slot(lock_path, correlation_id=cid)
 
 
+def _prepare_external_data(
+    timerange: str,
+    pairs: List[str],
+    db_path: Path,
+    *,
+    correlation_id: Optional[str] = None,
+):
+    """Fetches, analyzes, and persists external data like news and sentiment."""
+    logger = get_json_logger(
+        "runner.data_prep",
+        static_fields={"correlation_id": correlation_id} if correlation_id else None,
+    )
+    logger.info("Starting external data preparation.")
+
+    try:
+        start_str, end_str = timerange.split("-")
+        since = datetime.datetime.strptime(start_str, "%Y%m%d").replace(
+            tzinfo=datetime.timezone.utc
+        )
+        until = datetime.datetime.strptime(end_str, "%Y%m%d").replace(
+            tzinfo=datetime.timezone.utc
+        )
+    except ValueError as e:
+        logger.error(
+            "invalid_timerange_format", extra={"timerange": timerange, "error": str(e)}
+        )
+        return
+
+    # 1. Fetch news
+    news_fetcher = DemoNewsFetcher()
+    articles = news_fetcher.fetch_news(symbols=pairs, since=since, until=until)
+    if not articles:
+        logger.info("No relevant news articles found for the given symbols and timerange.")
+        return
+
+    # 2. Analyze sentiment
+    sentiment_analyzer = DemoSentimentAnalyzer()
+    enriched_articles = sentiment_analyzer.analyze(articles)
+
+    # 3. Persist to database
+    try:
+        conn = connect(db_path)
+        ensure_schema(conn, with_extended=True)
+        upsert_news_articles(conn, enriched_articles)
+        logger.info(
+            f"Successfully upserted {len(enriched_articles)} articles into the database.",
+            extra={"db_path": str(db_path)},
+        )
+    except Exception as e:
+        logger.error("db_persistence_failed", extra={"error": str(e)})
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+
 def run_backtest(
     config_path: Path,
     strategy: str,
@@ -273,6 +338,7 @@ def run_backtest(
     cwd: Optional[Path] = None,
     timeout: Optional[int] = None,
     correlation_id: Optional[str] = None,
+    db_path: Optional[Path] = None,
 ) -> RunResult:
     cid = correlation_id or uuid.uuid4().hex
     logger = get_json_logger(
@@ -285,6 +351,29 @@ def run_backtest(
             "timeframe": timeframe or "",
         },
     )
+    # --- External Data Preparation ---
+    # Use default db path if not provided. Assumes a standard project structure.
+    final_db_path = db_path or Path.cwd() / "user_data" / "backtest_results" / "index.db"
+    pairs_to_fetch = []
+    if pairs_file and pairs_file.exists():
+        with open(pairs_file, 'r') as f:
+            pairs_to_fetch = [line.strip() for line in f if line.strip()] 
+    elif config_path and config_path.exists():
+        with open(config_path, 'r') as f:
+            config_data = json.load(f)
+            pairs_to_fetch = config_data.get('exchange', {}).get('pair_whitelist', [])
+
+    if pairs_to_fetch:
+        _prepare_external_data(
+            timerange=timerange,
+            pairs=pairs_to_fetch,
+            db_path=final_db_path,
+            correlation_id=cid,
+        )
+    else:
+        logger.warning("data_prep_skipped_no_pairs", extra={"reason": "No pairs found in pairs_file or config."})
+    # --- End External Data Preparation ---
+
     logger.debug(
         "run_backtest_params",
         extra={

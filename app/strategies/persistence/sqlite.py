@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import datetime
+import hashlib
 import json
 import sqlite3
 from pathlib import Path
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.data_services.models import NewsArticle
 
 
 # Core schema (registry)
@@ -156,6 +161,22 @@ EXTENDED_SCHEMA: dict[str, str] = {
         )
         """
     ),
+    "news_articles": (
+        """
+        CREATE TABLE IF NOT EXISTS news_articles (
+            id TEXT PRIMARY KEY,
+            source TEXT NOT NULL,
+            headline TEXT NOT NULL,
+            url TEXT UNIQUE NOT NULL,
+            published_at TEXT NOT NULL,
+            symbols TEXT,
+            summary TEXT,
+            sentiment_score REAL,
+            sentiment_label TEXT,
+            fetched_utc TEXT NOT NULL
+        )
+        """
+    ),
 }
 
 
@@ -283,3 +304,64 @@ def upsert_registry(conn: sqlite3.Connection, registry: Dict[str, Any]) -> None:
         )
 
     conn.commit()
+
+
+def get_news_articles_in_range(
+    conn: sqlite3.Connection, start_utc: datetime.datetime, end_utc: datetime.datetime
+) -> list[dict[str, Any]]:
+    """Retrieves news articles published within a specific UTC datetime range."""
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT *
+        FROM news_articles
+        WHERE published_at >= ? AND published_at <= ?
+        ORDER BY published_at ASC
+        """,
+        (start_utc.isoformat(), end_utc.isoformat()),
+    )
+    rows = cur.fetchall()
+    return [dict(row) for row in rows]
+
+
+def upsert_news_articles(conn: sqlite3.Connection, articles: list["NewsArticle"]) -> None:
+    """
+    Upserts a list of news articles into the database.
+    The ID is a SHA256 hash of the article URL to ensure uniqueness.
+    """
+    cur = conn.cursor()
+    now_utc = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+    for article in articles:
+        article_id = hashlib.sha256(article.url.encode()).hexdigest()
+        cur.execute(
+            """
+            INSERT INTO news_articles (
+                id, source, headline, url, published_at, symbols, summary,
+                sentiment_score, sentiment_label, fetched_utc
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                headline=excluded.headline,
+                published_at=excluded.published_at,
+                symbols=excluded.symbols,
+                summary=excluded.summary,
+                sentiment_score=excluded.sentiment_score,
+                sentiment_label=excluded.sentiment_label,
+                fetched_utc=excluded.fetched_utc
+            """,
+            (
+                article_id,
+                article.source,
+                article.headline,
+                article.url,
+                article.published_at.isoformat(),
+                _csv(article.symbols),
+                article.summary,
+                article.sentiment_score,
+                article.sentiment_label,
+                now_utc,
+            ),
+        )
+    conn.commit()
+
