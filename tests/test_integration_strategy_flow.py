@@ -3,6 +3,7 @@ Integration tests for the full strategy flow, using the runner module.
 """
 
 import unittest
+import os
 import tempfile
 import json
 import sqlite3
@@ -30,7 +31,8 @@ class TestFullStrategyFlow(unittest.TestCase):
         (self.user_data_path / 'data' / 'binance').mkdir(parents=True, exist_ok=True)
 
         # Copy the strategy file to the temporary directory
-        source_strategy_path = Path(__file__).parent.parent / 'user_data' / 'strategies' / 'IntegrationTestStrategy.py'
+        strategy_base_path = Path(os.getenv('STRATEGY_PATH', '/freqtrade/user_data/strategies'))
+        source_strategy_path = strategy_base_path / 'IntegrationTestStrategy.py'
         dest_strategy_path = strategies_path / 'IntegrationTestStrategy.py'
         dest_strategy_path.write_text(source_strategy_path.read_text())
 
