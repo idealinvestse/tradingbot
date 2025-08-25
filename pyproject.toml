@@ -1,3 +1,32 @@
+[project]
+name = "tradingbot"
+version = "0.1.0"
+description = "A Freqtrade-based trading bot with enhanced reasoning capabilities."
+requires-python = ">=3.10"
+
+dependencies = [
+    "freqtrade",
+    "pandas",
+    "numpy",
+    "scipy"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
+dev = [
+    "black",
+    "ruff",
+    "isort",
+    "mypy",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["user_data*", "tests*"]
+
 [tool.black]
 line-length = 100
 target-version = ["py311"]
