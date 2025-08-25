@@ -1,30 +1,84 @@
-# Python
+# --- Python Bytecode and Cache ---
 __pycache__/
 *.py[cod]
+*$py.class
+
+# --- Distribution / Packaging ---
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
 *.egg-info/
-.venv/
-venv/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Tools
-.mypy_cache/
-.ruff_cache/
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Editors
-.vscode/
-.idea/
-
-# Env/Secrets
+# --- Virtual Environments ---
 .env
-*.secret
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Freqtrade data/logs
+# --- IDEs and Editors ---
+.idea/
+.vscode/
+*.swp
+*~
+.project
+.pydevproject
+.settings/
+
+# --- Operating System Files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Testing and Linting ---
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+htmlcov/
+.tox/
+
+# --- Freqtrade User Data ---
+# Ignore large data files, logs, and generated artifacts.
+# Keep configs and strategy definitions.
 user_data/data/
 user_data/logs/
 user_data/reports/
+user_data/backtest_results/*.zip
+user_data/hyperopt_results/*.fthypt
+user_data/hyperopt_results/*.pkl
+user_data/freqaimodels/
 
-# OS
-.DS_Store
-Thumbs.db
+# --- Database Files ---
+*.db
+*.sqlite
+*.sqlite3
+
+# --- Secrets and Credentials ---
+*.secret
+# Note: .env is also in the virtual env section, but repeated here for clarity.
+
+# --- Jupyter Notebook ---
+.ipynb_checkpoints
