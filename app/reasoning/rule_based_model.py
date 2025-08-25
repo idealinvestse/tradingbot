@@ -66,7 +66,22 @@ class RuleBasedModel(BaseReasoningModel):
         fast_ma_series = qtpylib.sma(dataframe["close"], self.fast_ma)
         slow_ma_series = qtpylib.sma(dataframe["close"], self.slow_ma)
 
-        ma_crossover = qtpylib.crossed_above(fast_ma_series, slow_ma_series).iloc[-1]
+        crossover_series = qtpylib.crossed_above(fast_ma_series, slow_ma_series)
+
+        # A buy signal is generated if the fast MA is above the slow MA
+        # and a crossover happened on the previous candle.
+        ma_is_above = (fast_ma_series.iloc[-1] > slow_ma_series.iloc[-1])
+        previous_candle_crossed_over = crossover_series.iloc[-2]
+        ma_crossover = ma_is_above and previous_candle_crossed_over
+
+        # --- Debug Logging ---
+        logger.debug(f"MA is above: {ma_is_above}")
+        logger.debug(f"Previous candle crossed over: {previous_candle_crossed_over}")
+        logger.debug(f"Final Crossover Signal: {ma_crossover}")
+        logger.debug(f"Fast MA tail:\n{fast_ma_series.tail()})")
+        logger.debug(f"Slow MA tail:\n{slow_ma_series.tail()})")
+        logger.debug(f"Crossover series tail:\n{crossover_series.tail()})")
+        # --- End Debug Logging ---
 
         # 2. External Data Signal (Sentiment)
         avg_sentiment = self._get_average_sentiment(current_time)

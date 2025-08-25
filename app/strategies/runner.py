@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import json
 import subprocess
+import sys
 import time
 import uuid
 from dataclasses import dataclass
@@ -98,6 +99,8 @@ def build_freqtrade_backtest_cmd(
         },
     )
     cmd: List[str] = [
+        sys.executable,
+        "-m",
         "freqtrade",
         "backtesting",
         "--config",
@@ -139,6 +142,8 @@ def build_freqtrade_live_cmd(
         },
     )
     cmd: List[str] = [
+        sys.executable,
+        "-m",
         "freqtrade",
         "trade",
         "--config",
@@ -181,6 +186,8 @@ def build_freqtrade_hyperopt_cmd(
         },
     )
     cmd: List[str] = [
+        sys.executable,
+        "-m",
         "freqtrade",
         "hyperopt",
         "--config",
@@ -352,26 +359,27 @@ def run_backtest(
         },
     )
     # --- External Data Preparation ---
-    # Use default db path if not provided. Assumes a standard project structure.
-    final_db_path = db_path or Path.cwd() / "user_data" / "backtest_results" / "index.db"
-    pairs_to_fetch = []
-    if pairs_file and pairs_file.exists():
-        with open(pairs_file, 'r') as f:
-            pairs_to_fetch = [line.strip() for line in f if line.strip()] 
-    elif config_path and config_path.exists():
-        with open(config_path, 'r') as f:
-            config_data = json.load(f)
-            pairs_to_fetch = config_data.get('exchange', {}).get('pair_whitelist', [])
+    # If a specific db_path is provided, we assume data is managed externally (e.g., in tests).
+    if not db_path:
+        final_db_path = Path.cwd() / "user_data" / "backtest_results" / "index.db"
+        pairs_to_fetch = []
+        if pairs_file and pairs_file.exists():
+            with open(pairs_file, 'r') as f:
+                pairs_to_fetch = [line.strip() for line in f if line.strip()]
+        elif config_path and config_path.exists():
+            with open(config_path, 'r') as f:
+                config_data = json.load(f)
+                pairs_to_fetch = config_data.get('exchange', {}).get('pair_whitelist', [])
 
-    if pairs_to_fetch:
-        _prepare_external_data(
-            timerange=timerange,
-            pairs=pairs_to_fetch,
-            db_path=final_db_path,
-            correlation_id=cid,
-        )
-    else:
-        logger.warning("data_prep_skipped_no_pairs", extra={"reason": "No pairs found in pairs_file or config."})
+        if pairs_to_fetch:
+            _prepare_external_data(
+                timerange=timerange,
+                pairs=pairs_to_fetch,
+                db_path=final_db_path,
+                correlation_id=cid,
+            )
+        else:
+            logger.warning("data_prep_skipped_no_pairs", extra={"reason": "No pairs found in pairs_file or config."})
     # --- End External Data Preparation ---
 
     logger.debug(

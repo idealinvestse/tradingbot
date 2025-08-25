@@ -7,9 +7,6 @@ services:
       - ./.env
     volumes:
       - ./user_data:/freqtrade/user_data
-    command: >
-      trade
-      -c /freqtrade/user_data/configs/config.testnet.json
-      --logfile /freqtrade/user_data/logs/freqtrade.log
-      --dry-run
+    entrypoint: sleep
+    command: infinity
     tty: true
