@@ -52,9 +52,11 @@ def _sha256_file(path: Path, chunk_size: int = 1 << 20) -> str:
 
 
 def parse_backtest_meta(meta_path: Path) -> Optional[BacktestMeta]:
+    logger = get_json_logger("metrics", static_fields={"op": "parse_backtest_meta"})
     try:
         data = json.loads(meta_path.read_text(encoding='utf-8'))
-    except Exception:
+    except Exception as e:
+        logger.warning("meta_parse_error", extra={"path": str(meta_path), "error": str(e)})
         return None
 
     if not isinstance(data, dict) or not data:
@@ -67,6 +69,7 @@ def parse_backtest_meta(meta_path: Path) -> Optional[BacktestMeta]:
     # Optional validation via Pydantic if available
     _ok, _reason = _validate_backtest_payload(payload)
     if not _ok:
+        logger.warning("meta_validation_failed", extra={"path": str(meta_path), "reason": _reason})
         return None
 
     return BacktestMeta(
@@ -79,6 +82,8 @@ def parse_backtest_meta(meta_path: Path) -> Optional[BacktestMeta]:
 
 
 def _upsert_experiment(cur, exp_id: str, idea_id: str, strategy_id: str, timeframe: Optional[str], start_iso: Optional[str], end_iso: Optional[str], config_hash: Optional[str] = None) -> None:
+    logger = get_json_logger("metrics", static_fields={"op": "_upsert_experiment"})
+    logger.debug("upserting_experiment", extra={"exp_id": exp_id, "strategy_id": strategy_id})
     cur.execute(
         """
         INSERT INTO experiments (
@@ -105,6 +110,8 @@ def _upsert_experiment(cur, exp_id: str, idea_id: str, strategy_id: str, timefra
 
 
 def _upsert_run(cur, run_id: str, experiment_id: str, kind: str, started_iso: Optional[str], finished_iso: Optional[str], status: str, artifacts_path: Optional[str], data_window: Optional[str] = None) -> None:
+    logger = get_json_logger("metrics", static_fields={"op": "_upsert_run"})
+    logger.debug("upserting_run", extra={"run_id": run_id, "kind": kind, "status": status})
     cur.execute(
         """
         INSERT INTO runs (
@@ -133,6 +140,8 @@ def _upsert_run(cur, run_id: str, experiment_id: str, kind: str, started_iso: Op
 
 
 def _upsert_metric(cur, run_id: str, key: str, value: float) -> None:
+    logger = get_json_logger("metrics", static_fields={"op": "_upsert_metric"})
+    logger.debug("upserting_metric", extra={"run_id": run_id, "key": key, "value": value})
     # Use Decimal for monetary values to maintain precision
     # Quantize to 8 decimal places to match the precision used in _parse_zip_metrics
     # Only cast to float at the DB boundary as the schema uses REAL
@@ -149,6 +158,8 @@ def _upsert_metric(cur, run_id: str, key: str, value: float) -> None:
 
 
 def _upsert_artifact(cur, run_id: str, name: str, path: str, sha256: Optional[str]) -> None:
+    logger = get_json_logger("metrics", static_fields={"op": "_upsert_artifact"})
+    logger.debug("upserting_artifact", extra={"run_id": run_id, "name": name, "sha256": sha256 or ''})
     cur.execute(
         """
         INSERT INTO artifacts (run_id, name, path, sha256)
@@ -617,12 +628,15 @@ except Exception:  # pragma: no cover - pydantic not installed
 
 
 def _validate_backtest_payload(payload: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+    logger = get_json_logger("metrics", static_fields={"op": "_validate_backtest_payload"})
     """Validate backtest payload with Pydantic if available; otherwise run soft checks."""
     if _PYDANTIC_OK and _BacktestPayloadModel is not None:
         try:
             _BacktestPayloadModel.model_validate(payload)  # type: ignore[attr-defined]
+            logger.debug("pydantic_validation_success")
             return True, None
         except Exception as e:  # pragma: no cover - validation error
+            logger.debug("pydantic_validation_failed", extra={"error": str(e)})
             return False, str(e)
     # Soft validation
     if not isinstance(payload, dict):
@@ -636,11 +650,14 @@ def _validate_backtest_payload(payload: Dict[str, Any]) -> Tuple[bool, Optional[
 
 
 def _validate_hyperopt_trial(rec: Dict[str, Any]) -> bool:
+    logger = get_json_logger("metrics", static_fields={"op": "_validate_hyperopt_trial"})
     if _PYDANTIC_OK and _HyperoptTrialModel is not None:
         try:
             _HyperoptTrialModel.model_validate(rec)  # type: ignore[attr-defined]
+            logger.debug("pydantic_validation_success")
             return True
-        except Exception:  # pragma: no cover
+        except Exception as e:  # pragma: no cover
+            logger.debug("pydantic_validation_failed", extra={"error": str(e)})
             return False
     # Soft validation
     return isinstance(rec, dict)

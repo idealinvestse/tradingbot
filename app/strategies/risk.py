@@ -43,36 +43,46 @@ class RiskManager:
     """
 
     def __init__(self, config: Optional[RiskConfig] = None) -> None:
+        logger = get_json_logger("risk", static_fields={"op": "__init__"})
         self.cfg = config or self._load_from_env()
+        logger.debug("risk_manager_initialized", extra={k: str(v) for k, v in self.cfg.__dict__.items() if v is not None})
 
     def _load_from_env(self) -> RiskConfig:
+        logger = get_json_logger("risk", static_fields={"op": "_load_from_env"})
         raw_mcb = os.getenv("RISK_MAX_CONCURRENT_BACKTESTS")
         try:
             mcb = int(raw_mcb) if raw_mcb is not None else None
         except ValueError:
             mcb = None
+        logger.debug("loaded_max_concurrent_backtests", extra={"value": mcb})
 
         raw_ttl = os.getenv("RISK_CONCURRENCY_TTL_SEC", "900")
         try:
             ttl = int(raw_ttl)
         except ValueError:
             ttl = 900
+        logger.debug("loaded_concurrency_ttl_sec", extra={"value": ttl})
 
         # Resolve project root: app/strategies/ -> project root
         root = Path(__file__).resolve().parents[2]
         user_data = root / "user_data"
         state_dir = Path(os.getenv("RISK_STATE_DIR", str(user_data / "state")))
+        logger.debug("loaded_state_dir", extra={"value": state_dir})
         cb_file = os.getenv("RISK_CIRCUIT_BREAKER_FILE", str(state_dir / "circuit_breaker.json"))
+        logger.debug("loaded_circuit_breaker_file", extra={"value": cb_file})
 
         allow_run_when_cb = os.getenv("RISK_ALLOW_WHEN_CB", "0").strip() in {"1", "true", "True"}
+        logger.debug("loaded_allow_run_when_cb", extra={"value": allow_run_when_cb})
 
         raw_dd = os.getenv("RISK_MAX_BACKTEST_DRAWDOWN_PCT")
         try:
             max_dd = float(raw_dd) if raw_dd is not None else None
         except ValueError:
             max_dd = None
+        logger.debug("loaded_max_backtest_drawdown_pct", extra={"value": max_dd})
 
         db_path = Path(os.getenv("RISK_DB_PATH", str(user_data / "registry" / "strategies_registry.sqlite")))
+        logger.debug("loaded_db_path", extra={"value": db_path})
 
         # Live guardrails
         raw_lct = os.getenv("RISK_LIVE_MAX_CONCURRENT_TRADES")
@@ -80,12 +90,14 @@ class RiskManager:
             live_lct = int(raw_lct) if raw_lct is not None else None
         except ValueError:
             live_lct = None
+        logger.debug("loaded_live_max_concurrent_trades", extra={"value": live_lct})
 
         raw_pme = os.getenv("RISK_LIVE_MAX_PER_MARKET_EXPOSURE_PCT")
         try:
             live_pme = float(raw_pme) if raw_pme is not None else None
         except ValueError:
             live_pme = None
+        logger.debug("loaded_live_max_per_market_exposure_pct", extra={"value": live_pme})
 
         return RiskConfig(
             max_concurrent_backtests=mcb,
@@ -130,15 +142,17 @@ class RiskManager:
         )
 
         # Circuit breaker
-        active, reason = self._circuit_breaker_active()
+        logger.debug("checking_circuit_breaker")
+        active, reason = self._circuit_breaker_active(correlation_id=correlation_id)
         if active and not self.cfg.allow_run_when_cb:
             logger.warning("circuit_breaker_block", extra={"reason": reason})
             return False, f"circuit_breaker_active: {reason or ''}"
 
         # Optional: block backtests if recent drawdown exceeded threshold
         if kind == "backtest" and self.cfg.max_backtest_drawdown_pct is not None:
+            logger.debug("checking_recent_drawdown")
             try:
-                dd = self._recent_backtest_drawdown()
+                dd = self._recent_backtest_drawdown(correlation_id=correlation_id)
             except Exception:
                 dd = None
             if dd is not None and abs(dd) >= max(0.0, self.cfg.max_backtest_drawdown_pct):
@@ -147,6 +161,7 @@ class RiskManager:
 
         # Live trading guardrails (pre-run gating via provided context)
         if kind == "live":
+            logger.debug("checking_live_guardrails")
             # concurrent trades cap
             if self.cfg.live_max_concurrent_trades is not None:
                 open_trades = None
@@ -254,6 +269,7 @@ class RiskManager:
         return path
 
     def _count_active_locks(self, kind: str) -> int:
+        logger = get_json_logger("risk", static_fields={"op": "_count_active_locks"})
         rd = self._running_dir()
         ttl = max(1, int(self.cfg.concurrency_ttl_sec))
         now_s = time.time()
@@ -267,18 +283,25 @@ class RiskManager:
                 count += 1
             else:
                 # Clean up stale
+                logger.debug("stale_lock_cleanup", extra={"lock_file": str(p), "age_sec": age, "ttl_sec": ttl})
                 try:
                     p.unlink()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("stale_lock_cleanup_failed", extra={"lock_file": str(p), "error": str(e)})
         return count
 
-    def _circuit_breaker_active(self) -> Tuple[bool, Optional[str]]:
+    def _circuit_breaker_active(self, *, correlation_id: Optional[str] = None) -> Tuple[bool, Optional[str]]:
+        logger = get_json_logger(
+            "risk",
+            static_fields={"correlation_id": correlation_id, "op": "_circuit_breaker_active"} if correlation_id else {"op": "_circuit_breaker_active"},
+        )
         cb = self.cfg.circuit_breaker_file
+        logger.debug("cb_check", extra={"cb_file": str(cb)})
         if not cb:
             return False, None
         try:
             if not cb.exists():
+                logger.debug("cb_file_not_found")
                 return False, None
             data = json.loads(cb.read_text(encoding="utf-8"))
             active = bool(data.get("active"))
@@ -297,13 +320,19 @@ class RiskManager:
                 if datetime.now(tz=timezone.utc) > until:
                     return False, None
             return True, reason
-        except Exception:
+        except Exception as e:
+            logger.error("circuit_breaker_parse_error", extra={"path": str(cb), "error": str(e)})
             return True, "circuit_breaker_parse_error"
 
-    def _recent_backtest_drawdown(self) -> Optional[float]:
+    def _recent_backtest_drawdown(self, *, correlation_id: Optional[str] = None) -> Optional[float]:
         """Return most recent backtest 'max_drawdown_account' metric if available."""
+        logger = get_json_logger(
+            "risk",
+            static_fields={"correlation_id": correlation_id, "op": "_recent_backtest_drawdown"} if correlation_id else {"op": "_recent_backtest_drawdown"},
+        )
         db = self.cfg.db_path
         if not db or not db.exists():
+            logger.debug("dd_check_skipped_no_db", extra={"db_path": str(db)})
             return None
         try:
             con = sqlite3.connect(db)
@@ -321,6 +350,7 @@ class RiskManager:
             row = cur.fetchone()
             con.close()
             if not row:
+                logger.debug("dd_check_no_metric_found")
                 return None
             val = row[0]
             if val is None:
@@ -334,7 +364,8 @@ class RiskManager:
             if af > 1.0:
                 af = af / 100.0
             return af if f >= 0 else -af
-        except Exception:
+        except Exception as e:
+            logger.error("dd_check_db_error", extra={"db_path": str(db), "error": str(e)})
             return None
 
     def log_incident(

@@ -1,6 +1,9 @@
 from __future__ import annotations
+import logging
+from functools import reduce
+from typing import Dict, List
 
-from typing import Dict, Optional
+log = logging.getLogger(__name__)
 
 from decimal import Decimal
 import numpy as np
@@ -63,6 +66,7 @@ class WmaStochSwingStrategy(IStrategy):
         return series.rolling(period).apply(lambda x: float(np.dot(x, weights)) / weights.sum(), raw=True)
 
     def populate_indicators(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+        log.debug(f"Populating indicators for {metadata['pair']}... Shape: {dataframe.shape}")
         df = dataframe.sort_index()
 
         f = int(self.wma_fast.value)
@@ -91,9 +95,11 @@ class WmaStochSwingStrategy(IStrategy):
         # Volymmedel
         df["volume_mean"] = df["volume"].rolling(window=20, min_periods=20).mean()
 
+        log.debug(f"Indicators populated for {metadata['pair']}. WMA/Stoch values added.")
         return df
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+        log.debug(f"Populating entry trend for {metadata['pair']}...")
         df = dataframe.copy()
         # Uptrend + K cross up D from oversold
         cross_up = (df["stoch_k"] > df["stoch_d"]) & (df["stoch_k"].shift(1) <= df["stoch_d"].shift(1))
@@ -106,9 +112,15 @@ class WmaStochSwingStrategy(IStrategy):
             (df["volume_mean"].fillna(0) > 0)
         )
         df.loc[df["enter_long"], "enter_tag"] = "wma_stoch_long"
+
+        entry_signals = df[df["enter_long"] == True]
+        if not entry_signals.empty:
+            log.info(f"{metadata['pair']}: {len(entry_signals)} entry signals found.")
+
         return df
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+        log.debug(f"Populating exit trend for {metadata['pair']}...")
         df = dataframe.copy()
         cross_down = (df["stoch_k"] < df["stoch_d"]) & (df["stoch_k"].shift(1) >= df["stoch_d"].shift(1))
         df["exit_long"] = (
@@ -117,6 +129,11 @@ class WmaStochSwingStrategy(IStrategy):
             (df["volume"] > 0)
         )
         df.loc[df["exit_long"], "exit_tag"] = "stoch_revert_or_trend_break"
+
+        exit_signals = df[df["exit_long"] == True]
+        if not exit_signals.empty:
+            log.info(f"{metadata['pair']}: {len(exit_signals)} exit signals found.")
+
         return df
 
     # --- Risk/position sizing ---

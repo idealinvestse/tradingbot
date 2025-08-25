@@ -75,6 +75,18 @@ def build_freqtrade_backtest_cmd(
 
     Example equivalent: freqtrade backtesting --config user_data/configs/config.bt.json --strategy MaCrossoverStrategy --timerange 20240101-20240701
     """
+    logger = get_json_logger("runner.builder")
+    logger.debug(
+        "build_backtest_cmd",
+        extra={
+            "config_path": str(config_path),
+            "strategy": strategy,
+            "timerange": timerange,
+            "pairs_file": str(pairs_file) if pairs_file else None,
+            "timeframe": timeframe,
+            "addl_args": list(addl_args) if addl_args else None,
+        },
+    )
     cmd: List[str] = [
         "freqtrade",
         "backtesting",
@@ -95,6 +107,7 @@ def build_freqtrade_backtest_cmd(
         cmd += list(addl_args)
     return cmd
 
+
 def build_freqtrade_live_cmd(
     config_path: Path,
     *,
@@ -106,6 +119,15 @@ def build_freqtrade_live_cmd(
     Example equivalent: freqtrade trade --config user_data/configs/config.mainnet.json --strategy MaCrossoverStrategy
     Strategy is optional and can be sourced from config.
     """
+    logger = get_json_logger("runner.builder")
+    logger.debug(
+        "build_live_cmd",
+        extra={
+            "config_path": str(config_path),
+            "strategy": strategy,
+            "addl_args": list(addl_args) if addl_args else None,
+        },
+    )
     cmd: List[str] = [
         "freqtrade",
         "trade",
@@ -117,6 +139,7 @@ def build_freqtrade_live_cmd(
     if addl_args:
         cmd += list(addl_args)
     return cmd
+
 
 def build_freqtrade_hyperopt_cmd(
     config_path: Path,
@@ -133,6 +156,20 @@ def build_freqtrade_hyperopt_cmd(
 
     Example equivalent: freqtrade hyperopt --config user_data/configs/config.bt.json --strategy MaCrossoverStrategy --spaces buy sell roi stoploss --epochs 100
     """
+    logger = get_json_logger("runner.builder")
+    logger.debug(
+        "build_hyperopt_cmd",
+        extra={
+            "config_path": str(config_path),
+            "strategy": strategy,
+            "spaces": spaces,
+            "epochs": epochs,
+            "timerange": timerange,
+            "pairs_file": str(pairs_file) if pairs_file else None,
+            "timeframe": timeframe,
+            "addl_args": list(addl_args) if addl_args else None,
+        },
+    )
     cmd: List[str] = [
         "freqtrade",
         "hyperopt",
@@ -154,6 +191,7 @@ def build_freqtrade_hyperopt_cmd(
     if addl_args:
         cmd += list(addl_args)
     return cmd
+
 
 def run_live(
     config_path: Path,
@@ -179,6 +217,17 @@ def run_live(
             "correlation_id": cid,
             "kind": "live",
             "strategy": strategy or "",
+        },
+    )
+    logger.debug(
+        "run_live_params",
+        extra={
+            "config_path": str(config_path),
+            "addl_args": list(addl_args) if addl_args else None,
+            "cwd": str(cwd) if cwd else None,
+            "timeout": timeout,
+            "open_trades_count": open_trades_count,
+            "market_exposure_pct": market_exposure_pct,
         },
     )
 
@@ -212,6 +261,7 @@ def run_live(
     finally:
         rm.release_run_slot(lock_path, correlation_id=cid)
 
+
 def run_backtest(
     config_path: Path,
     strategy: str,
@@ -233,6 +283,16 @@ def run_backtest(
             "strategy": strategy,
             "timerange": timerange,
             "timeframe": timeframe or "",
+        },
+    )
+    logger.debug(
+        "run_backtest_params",
+        extra={
+            "config_path": str(config_path),
+            "pairs_file": str(pairs_file) if pairs_file else None,
+            "addl_args": list(addl_args) if addl_args else None,
+            "cwd": str(cwd) if cwd else None,
+            "timeout": timeout,
         },
     )
 
@@ -265,6 +325,7 @@ def run_backtest(
     finally:
         rm.release_run_slot(lock_path, correlation_id=cid)
 
+
 def run_hyperopt(
     config_path: Path,
     strategy: str,
@@ -290,6 +351,16 @@ def run_hyperopt(
             "epochs": epochs,
             "timerange": timerange or "",
             "timeframe": timeframe or "",
+        },
+    )
+    logger.debug(
+        "run_hyperopt_params",
+        extra={
+            "config_path": str(config_path),
+            "pairs_file": str(pairs_file) if pairs_file else None,
+            "addl_args": list(addl_args) if addl_args else None,
+            "cwd": str(cwd) if cwd else None,
+            "timeout": timeout,
         },
     )
 

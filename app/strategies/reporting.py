@@ -28,7 +28,7 @@ def generate_markdown(registry: Dict[str, Any]) -> str:
     """
     cid = uuid.uuid4().hex
     logger = get_json_logger("reporting", static_fields={"correlation_id": cid, "op": "generate_markdown"})
-    logger.info("start", extra={"strategies": len(registry.get("strategies", []))})
+    logger.info("start", extra={"strategy_count": len(registry.get("strategies", []))})
     updated = registry.get("updated_utc") or datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     lines: List[str] = []
@@ -126,7 +126,7 @@ def generate_markdown(registry: Dict[str, Any]) -> str:
     lines.append("")
 
     out = "\n".join(lines) + "\n"
-    logger.info("done", extra={"lines": len(lines)})
+    logger.info("done", extra={"lines_generated": len(lines), "output_bytes": len(out)}) # Added output_bytes
     return out
 
 
@@ -138,6 +138,7 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
     cid = uuid.uuid4().hex
     logger = get_json_logger("reporting", static_fields={"correlation_id": cid, "op": "results_report"})
     logger.info("start", extra={"db_path": str(db_path), "limit": limit})
+    logger.debug("metric_keys_to_report", extra={"keys": keys})
     keys = [
         "profit_total",
         "profit_total_abs",
@@ -167,13 +168,20 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
                 result[k] = float(v)
         return result
 
-    con = sqlite3.connect(db_path)
-    cur = con.cursor()
+    logger.debug("connecting_db", extra={"db_path": str(db_path)})
+    try:
+        con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        cur = con.cursor()
+    except sqlite3.OperationalError as e:
+        logger.error("db_connect_failed", extra={"db_path": str(db_path), "error": str(e)})
+        return f"# Fel: Kunde inte ansluta till databasen\n\nKunde inte öppna: `{db_path}`. Kontrollera att filen existerar och har korrekta läsbehörigheter."
+
     # Detect optional columns/tables for backward compatibility
     cur.execute("PRAGMA table_info(runs)")
     run_cols = {r[1] for r in cur.fetchall()}  # type: ignore[index]
     cur.execute("PRAGMA table_info(experiments)")
     exp_cols = {r[1] for r in cur.fetchall()}  # type: ignore[index]
+    logger.debug("db_schema_info", extra={"run_columns": list(run_cols), "experiment_columns": list(exp_cols)})
 
     # Always select the core columns; we'll fetch optional fields per-row later
     cur.execute(
@@ -181,6 +189,7 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
         (limit,),
     )
     rows: List[Tuple[str, str, str, str, str, str]] = cur.fetchall()
+    logger.info("runs_fetched", extra={"count": len(rows)})
     con.close()
 
     now_utc = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -209,6 +218,7 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
     run_cols = {r[1] for r in cur.fetchall()}  # type: ignore[index]
     cur.execute("PRAGMA table_info(experiments)")
     exp_cols = {r[1] for r in cur.fetchall()}  # type: ignore[index]
+    logger.debug("db_schema_info", extra={"run_columns": list(run_cols), "experiment_columns": list(exp_cols)})
     for rid, exp, kind, started, finished, status in rows:
         mmap = _mmap(cur, rid)
         vals = [mmap.get(k, None) for k in keys]
@@ -221,7 +231,9 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
                 dw_row = cur.fetchone()
                 if dw_row and dw_row[0]:
                     data_window = str(dw_row[0])
-            except Exception:
+                    logger.debug("found_data_window", extra={"run_id": rid, "data_window": data_window})
+            except Exception as e:
+                logger.warning("data_window_fetch_failed", extra={"run_id": rid, "error": str(e)})
                 data_window = "-"
 
         config_hash = "-"
@@ -231,7 +243,9 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
                 ch_row = cur.fetchone()
                 if ch_row and ch_row[0]:
                     config_hash = str(ch_row[0])
-            except Exception:
+                    logger.debug("found_config_hash", extra={"run_id": rid, "experiment_id": exp, "config_hash": config_hash})
+            except Exception as e:
+                logger.warning("config_hash_fetch_failed", extra={"run_id": rid, "experiment_id": exp, "error": str(e)})
                 config_hash = "-"
         lines.append(
             "| "
@@ -250,8 +264,11 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
             + " |"
         )
     con.close()
+    logger.debug("db_connection_closed")
 
     lines.append("")
     lines.append(f"Nycklar: {', '.join(keys)}")
     lines.append("")
-    return "\n".join(lines) + "\n"
+    out = "\n".join(lines) + "\n"
+    logger.info("done", extra={"lines_generated": len(lines), "output_bytes": len(out)})
+    return out
