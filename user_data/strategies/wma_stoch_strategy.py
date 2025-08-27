@@ -1,14 +1,14 @@
 from __future__ import annotations
+
 import logging
-from functools import reduce
-from typing import Dict, List
 
 log = logging.getLogger(__name__)
 
 from decimal import Decimal
+
 import numpy as np
 import pandas as pd
-from freqtrade.strategy import IntParameter, DecimalParameter
+from freqtrade.strategy import DecimalParameter, IntParameter
 from freqtrade.strategy.interface import IStrategy
 from pandas import DataFrame
 
@@ -26,7 +26,7 @@ class WmaStochSwingStrategy(IStrategy):
     startup_candle_count: int = 300
     process_only_new_candles: bool = True
 
-    minimal_roi: Dict[str, float] = {"0": 0.03}
+    minimal_roi: dict[str, float] = {"0": 0.03}
     stoploss: float = -0.12
 
     trailing_stop: bool = True
@@ -65,7 +65,7 @@ class WmaStochSwingStrategy(IStrategy):
         weights = np.arange(1, period + 1)
         return series.rolling(period).apply(lambda x: float(np.dot(x, weights)) / weights.sum(), raw=True)
 
-    def populate_indicators(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         log.debug(f"Populating indicators for {metadata['pair']}... Shape: {dataframe.shape}")
         df = dataframe.sort_index()
 
@@ -98,7 +98,7 @@ class WmaStochSwingStrategy(IStrategy):
         log.debug(f"Indicators populated for {metadata['pair']}. WMA/Stoch values added.")
         return df
 
-    def populate_entry_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         log.debug(f"Populating entry trend for {metadata['pair']}...")
         df = dataframe.copy()
         # Uptrend + K cross up D from oversold
@@ -119,7 +119,7 @@ class WmaStochSwingStrategy(IStrategy):
 
         return df
 
-    def populate_exit_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         log.debug(f"Populating exit trend for {metadata['pair']}...")
         df = dataframe.copy()
         cross_down = (df["stoch_k"] < df["stoch_d"]) & (df["stoch_k"].shift(1) >= df["stoch_d"].shift(1))

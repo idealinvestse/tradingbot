@@ -3,10 +3,9 @@ from __future__ import annotations
 import argparse
 import shutil
 import sys
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
-import uuid
 
 # Ensure project root on sys.path when invoked directly
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,7 +26,7 @@ def backup(
     include_hyperopts: bool,
     include_registry: bool,
     include_logs: bool,
-    correlation_id: Optional[str] = None,
+    correlation_id: str | None = None,
 ) -> Path:
     cid = correlation_id or uuid.uuid4().hex
     logger = get_json_logger("backup", static_fields={"correlation_id": cid, "op": "backup"})
@@ -74,7 +73,7 @@ def restore(
     restore_registry: bool,
     restore_logs: bool,
     overwrite: bool,
-    correlation_id: Optional[str] = None,
+    correlation_id: str | None = None,
 ) -> None:
     cid = correlation_id or uuid.uuid4().hex
     logger = get_json_logger("backup", static_fields={"correlation_id": cid, "op": "restore"})

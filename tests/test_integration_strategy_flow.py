@@ -2,13 +2,13 @@
 Integration tests for the full strategy flow, using the runner module.
 """
 
-import unittest
-import os
-import tempfile
 import json
+import os
 import sqlite3
+import tempfile
+import unittest
+from datetime import datetime, timezone
 from pathlib import Path
-from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 
@@ -95,7 +95,7 @@ class TestFullStrategyFlow(unittest.TestCase):
             prices = [100] * 38 + [110, 111]
         else:
             prices = [110] * 38 + [100, 99]
-        
+
         df = pd.DataFrame({
             'open': prices,
             'high': [p * 1.02 for p in prices],
@@ -139,11 +139,11 @@ class TestFullStrategyFlow(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, msg=result.stderr)
-        
+
         # Check that a trade was actually executed
         results_file = self.user_data_path / 'backtest_results' / 'trades.json'
         self.assertTrue(results_file.exists())
-        with open(results_file, 'r') as f:
+        with open(results_file) as f:
             trades = json.load(f)
         self.assertEqual(len(trades['trades']), 1)
         self.assertEqual(trades['trades'][0]['pair'], 'BTC/USDT')
@@ -167,7 +167,7 @@ class TestFullStrategyFlow(unittest.TestCase):
 
         results_file = self.user_data_path / 'backtest_results' / 'trades.json'
         self.assertTrue(results_file.exists())
-        with open(results_file, 'r') as f:
+        with open(results_file) as f:
             trades = json.load(f)
         self.assertEqual(len(trades['trades']), 0)
 

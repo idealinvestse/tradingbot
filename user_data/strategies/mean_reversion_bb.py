@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import Dict, Optional
 from decimal import Decimal
 
 import pandas as pd
-from pandas import DataFrame
-from freqtrade.strategy import IntParameter, DecimalParameter
+from freqtrade.strategy import DecimalParameter, IntParameter
 from freqtrade.strategy.interface import IStrategy
+from pandas import DataFrame
 
 
 class MeanReversionBbStrategy(IStrategy):
@@ -23,7 +22,7 @@ class MeanReversionBbStrategy(IStrategy):
     process_only_new_candles: bool = True
 
     # Konservativ ROI/SL (optimeras via hyperopt)
-    minimal_roi: Dict[str, float] = {
+    minimal_roi: dict[str, float] = {
         "0": 0.03,
         "60": 0.02,
         "180": 0.0,
@@ -59,7 +58,7 @@ class MeanReversionBbStrategy(IStrategy):
         },
     }
 
-    def populate_indicators(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.sort_index()
 
         # Bollinger Bands + width
@@ -93,7 +92,7 @@ class MeanReversionBbStrategy(IStrategy):
         df["volume_mean"] = df["volume"].rolling(window=20, min_periods=20).mean()
         return df
 
-    def populate_entry_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         df["enter_long"] = (
             (df["close"] < df["bb_lower"]) &
@@ -104,7 +103,7 @@ class MeanReversionBbStrategy(IStrategy):
         df.loc[df["enter_long"], "enter_tag"] = "meanrev_bb"
         return df
 
-    def populate_exit_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         # Exit på revert mot mittband eller RSI normaliseras
         win = int(self.bb_window.value)
@@ -123,7 +122,7 @@ class MeanReversionBbStrategy(IStrategy):
         current_time,  # datetime
         current_rate: float,
         **kwargs,
-    ) -> Optional[float]:
+    ) -> float | None:
         """ATR-baserad position sizing."""
         if not hasattr(self, "dp") or self.dp is None:
             return None

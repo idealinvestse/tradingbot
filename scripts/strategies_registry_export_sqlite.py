@@ -4,8 +4,7 @@ import argparse
 import json
 import sqlite3
 from pathlib import Path
-from typing import Any, Dict, List
-
+from typing import Any
 
 SCHEMA = {
     "strategies": (
@@ -62,7 +61,7 @@ SCHEMA = {
 }
 
 
-def load_registry(path: Path) -> Dict[str, Any]:
+def load_registry(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -73,13 +72,13 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-def _csv(values: List[Any]) -> str:
+def _csv(values: list[Any]) -> str:
     if not values:
         return ""
     return ",".join(str(v) for v in values)
 
 
-def upsert_registry(conn: sqlite3.Connection, registry: Dict[str, Any]) -> None:
+def upsert_registry(conn: sqlite3.Connection, registry: dict[str, Any]) -> None:
     cur = conn.cursor()
 
     # strategies

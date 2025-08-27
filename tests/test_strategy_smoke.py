@@ -17,7 +17,9 @@ def test_strategy_loads():
             pytest.skip("dependency missing locally (freqtrade/pandas/numpy); skipping strategy import")
         raise
     assert hasattr(module, "MaCrossoverStrategy")
-    s = module.MaCrossoverStrategy()
+    # Provide minimal config for IStrategy
+    config = {"dry_run": True, "stake_currency": "USDT"}
+    s = module.MaCrossoverStrategy(config)
     assert s.timeframe in {"1m", "5m", "15m", "1h", "4h", "1d"}
 
 
@@ -33,7 +35,9 @@ def test_momentum_macd_rsi_loads():
             pytest.skip("dependency missing locally (freqtrade/pandas/numpy); skipping strategy import")
         raise
     assert hasattr(module, "MomentumMacdRsiStrategy")
-    s = module.MomentumMacdRsiStrategy()
+    # Provide minimal config for IStrategy
+    config = {"dry_run": True, "stake_currency": "USDT"}
+    s = module.MomentumMacdRsiStrategy(config)
     assert s.timeframe in {"1m", "5m", "15m", "1h", "4h", "1d"}
 
 
@@ -49,7 +53,9 @@ def test_bb_breakout_loads():
             pytest.skip("dependency missing locally (freqtrade/pandas/numpy); skipping strategy import")
         raise
     assert hasattr(module, "BollingerBreakoutStrategy")
-    s = module.BollingerBreakoutStrategy()
+    # Provide minimal config for IStrategy
+    config = {"dry_run": True, "stake_currency": "USDT"}
+    s = module.BollingerBreakoutStrategy(config)
     assert s.timeframe in {"1m", "5m", "15m", "1h", "4h", "1d"}
 
 
@@ -65,5 +71,7 @@ def test_wma_stoch_swing_loads():
             pytest.skip("dependency missing locally (freqtrade/pandas/numpy); skipping strategy import")
         raise
     assert hasattr(module, "WmaStochSwingStrategy")
-    s = module.WmaStochSwingStrategy()
+    # Provide minimal config for IStrategy
+    config = {"dry_run": True, "stake_currency": "USDT"}
+    s = module.WmaStochSwingStrategy(config)
     assert s.timeframe in {"1m", "5m", "15m", "1h", "4h", "1d"}

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Dict, Optional
-
 from decimal import Decimal
+
 import pandas as pd
-from freqtrade.strategy import IntParameter, DecimalParameter
+from freqtrade.strategy import DecimalParameter, IntParameter
 from freqtrade.strategy.interface import IStrategy
 from pandas import DataFrame
 
@@ -21,7 +20,7 @@ class BollingerBreakoutStrategy(IStrategy):
     startup_candle_count: int = 200
     process_only_new_candles: bool = True
 
-    minimal_roi: Dict[str, float] = {"0": 0.03}
+    minimal_roi: dict[str, float] = {"0": 0.03}
     stoploss: float = -0.12
 
     trailing_stop: bool = True
@@ -53,7 +52,7 @@ class BollingerBreakoutStrategy(IStrategy):
         },
     }
 
-    def populate_indicators(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.sort_index()
 
         # Bollinger bands + width
@@ -82,7 +81,7 @@ class BollingerBreakoutStrategy(IStrategy):
 
         return df
 
-    def populate_entry_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         width_min = df["bb_width_min"].fillna(method="ffill")
         df["enter_long"] = (
@@ -95,7 +94,7 @@ class BollingerBreakoutStrategy(IStrategy):
         df.loc[df["enter_long"], "enter_tag"] = "bb_breakout"
         return df
 
-    def populate_exit_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         # Exit på mean-reversion eller momentum-avtagande; trailing tar vinster
         df["exit_long"] = (
@@ -112,7 +111,7 @@ class BollingerBreakoutStrategy(IStrategy):
         current_time,  # datetime
         current_rate: float,
         **kwargs,
-    ) -> Optional[float]:
+    ) -> float | None:
         if not hasattr(self, "dp") or self.dp is None:
             return None
         try:

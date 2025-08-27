@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
 
 from pydantic import BaseModel, Field, validator
 
@@ -15,12 +14,12 @@ class Impact(str, Enum):
 
 class Event(BaseModel):
     name: str
-    symbols: List[str] = Field(default_factory=list)  # e.g., ["BTC", "ETH", "BTCUSDT"]
+    symbols: list[str] = Field(default_factory=list)  # e.g., ["BTC", "ETH", "BTCUSDT"]
     category: str = "general"  # e.g., protocol, macro, exchange, product
     impact: Impact = Impact.medium
     start: datetime
-    end: Optional[datetime] = None
-    description: Optional[str] = None
+    end: datetime | None = None
+    description: str | None = None
 
     @validator("end")
     def validate_range(cls, v, values):  # type: ignore[override]
@@ -31,4 +30,4 @@ class Event(BaseModel):
 
 
 class EventSchedule(BaseModel):
-    events: List[Event] = Field(default_factory=list)
+    events: list[Event] = Field(default_factory=list)

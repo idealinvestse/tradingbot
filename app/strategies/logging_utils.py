@@ -4,8 +4,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
-
+from typing import Any
 
 _LOG_STD_KEYS = {
     'name','msg','args','levelname','levelno','pathname','filename','module','exc_info','exc_text',
@@ -17,7 +16,7 @@ _LOG_STD_KEYS = {
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         now = datetime.now(tz=timezone.utc).isoformat()
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "ts": now,
             "level": record.levelname,
             "logger": record.name,
@@ -46,9 +45,9 @@ class JsonFormatter(logging.Formatter):
 def get_json_logger(
     name: str,
     *,
-    log_path: Optional[Path] = None,
+    log_path: Path | None = None,
     level: int = logging.INFO,
-    static_fields: Optional[Dict[str, Any]] = None,
+    static_fields: dict[str, Any] | None = None,
 ) -> logging.LoggerAdapter:
     """Create or fetch a JSON logger with optional file output and static fields.
 
@@ -75,9 +74,9 @@ def get_json_logger(
 
 def get_context_logger(
     name: str,
-    context: Optional[Dict[str, Any]] = None,
+    context: dict[str, Any] | None = None,
     *,
-    log_path: Optional[Path] = None,
+    log_path: Path | None = None,
     level: int = logging.INFO,
 ) -> logging.LoggerAdapter:
     """Convenience wrapper to obtain a JSON logger with contextual fields.

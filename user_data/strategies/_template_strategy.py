@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import Dict, Optional
 from decimal import Decimal
 
 import pandas as pd
-from pandas import DataFrame
-from freqtrade.strategy import IntParameter, DecimalParameter
+from freqtrade.strategy import DecimalParameter, IntParameter
 from freqtrade.strategy.interface import IStrategy
+from pandas import DataFrame
 
 
 class TemplateStrategy(IStrategy):
@@ -24,7 +23,7 @@ class TemplateStrategy(IStrategy):
     startup_candle_count: int = 200
     process_only_new_candles: bool = True
 
-    minimal_roi: Dict[str, float] = {
+    minimal_roi: dict[str, float] = {
         "0": 0.05,
         "60": 0.02,
         "180": 0.0,
@@ -54,7 +53,7 @@ class TemplateStrategy(IStrategy):
         },
     }
 
-    def populate_indicators(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.sort_index()
 
         # Example RSI
@@ -77,13 +76,13 @@ class TemplateStrategy(IStrategy):
 
         return df
 
-    def populate_entry_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         df["enter_long"] = (df["rsi"] > int(self.rsi_buy.value)) & (df["volume"] > 0)
         df.loc[df["enter_long"], "enter_tag"] = "template_entry"
         return df
 
-    def populate_exit_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         df["exit_long"] = (df["rsi"] < int(self.rsi_exit.value)) & (df["volume"] > 0)
         df.loc[df["exit_long"], "exit_tag"] = "template_exit"
@@ -95,7 +94,7 @@ class TemplateStrategy(IStrategy):
         current_time,
         current_rate: float,
         **kwargs,
-    ) -> Optional[float]:
+    ) -> float | None:
         # ATR-based example
         if not hasattr(self, "dp") or self.dp is None:
             return None

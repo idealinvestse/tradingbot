@@ -1,27 +1,27 @@
 from __future__ import annotations
 
 import sqlite3
+import uuid
+from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Tuple
-import uuid
+from typing import Any
 
 from .logging_utils import get_json_logger
 
 
-def _csv(values: List[Any] | None, dash: str = "-") -> str:
+def _csv(values: list[Any] | None, dash: str = "-") -> str:
     if not values:
         return dash
     return ", ".join(str(v) for v in values)
 
 
-def _safe(d: Dict[str, Any], key: str, default: Any = "-") -> Any:
+def _safe(d: dict[str, Any], key: str, default: Any = "-") -> Any:
     v = d.get(key)
     return v if v not in (None, "") else default
 
 
-def generate_markdown(registry: Dict[str, Any]) -> str:
+def generate_markdown(registry: dict[str, Any]) -> str:
     """Build Markdown overview from registry dict.
 
     Uses UTC for timestamp if registry lacks updated_utc.
@@ -31,7 +31,7 @@ def generate_markdown(registry: Dict[str, Any]) -> str:
     logger.info("start", extra={"strategy_count": len(registry.get("strategies", []))})
     updated = registry.get("updated_utc") or datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append("# Strategier, metoder och koncept – Registry")
     lines.append("")
     lines.append(f"Senast uppdaterad (UTC): {updated}")
@@ -138,7 +138,6 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
     cid = uuid.uuid4().hex
     logger = get_json_logger("reporting", static_fields={"correlation_id": cid, "op": "results_report"})
     logger.info("start", extra={"db_path": str(db_path), "limit": limit})
-    logger.debug("metric_keys_to_report", extra={"keys": keys})
     keys = [
         "profit_total",
         "profit_total_abs",
@@ -149,8 +148,9 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
         "loss",
         "trades",
     ]
+    logger.debug("metric_keys_to_report", extra={"keys": keys})
 
-    def _mmap(cur: sqlite3.Cursor, run_id: str) -> Dict[str, float]:
+    def _mmap(cur: sqlite3.Cursor, run_id: str) -> dict[str, float]:
         cur.execute(
             "SELECT key, value FROM metrics WHERE run_id = ?",
             (run_id,),
@@ -188,12 +188,12 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
         "SELECT id, experiment_id, kind, started_utc, finished_utc, status FROM runs ORDER BY finished_utc DESC LIMIT ?",
         (limit,),
     )
-    rows: List[Tuple[str, str, str, str, str, str]] = cur.fetchall()
+    rows: list[tuple[str, str, str, str, str, str]] = cur.fetchall()
     logger.info("runs_fetched", extra={"count": len(rows)})
     con.close()
 
     now_utc = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append("# Resultat – senaste körningar")
     lines.append("")
     lines.append(f"Genererad (UTC): {now_utc}")

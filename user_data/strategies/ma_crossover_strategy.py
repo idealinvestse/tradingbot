@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Dict, Optional
-
 from decimal import Decimal
+
 import pandas as pd
-from freqtrade.strategy import IntParameter, DecimalParameter
+from freqtrade.strategy import DecimalParameter, IntParameter
 from freqtrade.strategy.interface import IStrategy
 from pandas import DataFrame
 
@@ -25,7 +24,7 @@ class MaCrossoverStrategy(IStrategy):
     process_only_new_candles: bool = True
 
     # Risk (enkel baseline, finjustera efter backtests)
-    minimal_roi: Dict[str, float] = {"0": 0.03}
+    minimal_roi: dict[str, float] = {"0": 0.03}
     stoploss: float = -0.10
 
     # Trailing-stop (aktivera enkel positiv trailing för att låsa vinst)
@@ -65,7 +64,7 @@ class MaCrossoverStrategy(IStrategy):
     atr_stop_mult = DecimalParameter(1.5, 4.0, decimals=1, default=2.0, space="buy")
     max_stake_pct = DecimalParameter(0.02, 0.20, decimals=2, default=0.10, space="buy")
 
-    def populate_indicators(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         # Säkerställ sorterad data
         df = dataframe.sort_index()
 
@@ -111,7 +110,7 @@ class MaCrossoverStrategy(IStrategy):
 
         return df
 
-    def populate_entry_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         df["enter_long"] = (
             (df["ema_short"] > df["ema_long"]) &
@@ -125,7 +124,7 @@ class MaCrossoverStrategy(IStrategy):
         df.loc[df["enter_long"], "enter_tag"] = "ema_crossover+filters"
         return df
 
-    def populate_exit_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         df["exit_long"] = (
             ((df["ema_short"] < df["ema_long"]) | (df["macdhist"] < 0)) &
@@ -142,7 +141,7 @@ class MaCrossoverStrategy(IStrategy):
         current_time,  # datetime
         current_rate: float,
         **kwargs,
-    ) -> Optional[float]:
+    ) -> float | None:
         """ATR-baserad position sizing.
 
         Beräknar stake i stake-valutan baserat på önskad risk per trade och

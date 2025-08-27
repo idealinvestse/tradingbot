@@ -6,7 +6,7 @@ from pathlib import Path
 
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import pandas as pd
-from freqtrade.strategy import IStrategy, IntParameter, StringParameter
+from freqtrade.strategy import IntParameter, IStrategy, StringParameter
 
 from app.reasoning.ml_model import PlaceholderMLModel
 from app.reasoning.models import BaseReasoningModel
@@ -85,8 +85,8 @@ class SentimentStrategy(IStrategy):
     def populate_indicators(self, dataframe: pd.DataFrame, metadata: dict) -> pd.DataFrame:
         # Indicators required by the RuleBasedModel are populated here.
         # A more advanced implementation might have the model declare its indicator needs.
-        dataframe[f"fast_ma"] = qtpylib.sma(dataframe["close"], self.fast_ma.value)
-        dataframe[f"slow_ma"] = qtpylib.sma(dataframe["close"], self.slow_ma.value)
+        dataframe["fast_ma"] = qtpylib.sma(dataframe["close"], self.fast_ma.value)
+        dataframe["slow_ma"] = qtpylib.sma(dataframe["close"], self.slow_ma.value)
         return dataframe
 
     def populate_entry_trend(self, dataframe: pd.DataFrame, metadata: dict) -> pd.DataFrame:

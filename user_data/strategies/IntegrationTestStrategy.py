@@ -8,6 +8,7 @@ tests to inject a temporary, isolated database.
 
 import sqlite3
 from pathlib import Path
+
 import pandas as pd
 from freqtrade.strategy import IStrategy
 
@@ -34,12 +35,12 @@ class IntegrationTestStrategy(IStrategy):
 
     def __init__(self, config: dict, *args, **kwargs):
         super().__init__(config, *args, **kwargs)
-        
+
         # Get the database path from the custom config section.
         # This makes the strategy testable with a temporary DB.
         db_path_str = config.get('custom_config', {}).get('db_path', ':memory:')
         self.db_path = Path(db_path_str)
-        
+
         # Each strategy instance gets its own connection and model.
         self.db_conn = sqlite3.connect(self.db_path)
         ensure_schema(self.db_conn, with_extended=True)
@@ -82,21 +83,21 @@ class IntegrationTestStrategy(IStrategy):
                 # logic will close on the last candle.
                 if len(dataframe) >= 2:
                     dataframe.loc[dataframe.index[-2], 'enter_long'] = 1
-        
+
         # If entry would occur too late (last or penultimate), shift it to third-to-last
         if len(dataframe) >= 3:
             if dataframe.iloc[-1]['enter_long'] == 1 or dataframe.iloc[-2]['enter_long'] == 1:
                 dataframe.loc[dataframe.index[-1], 'enter_long'] = 0
                 dataframe.loc[dataframe.index[-2], 'enter_long'] = 0
                 dataframe.loc[dataframe.index[-3], 'enter_long'] = 1
-        
+
         # Legacy compatibility for some freqtrade versions
         dataframe['buy'] = dataframe['enter_long']
         # Optional: tag entries for easier inspection
         dataframe['enter_tag'] = ''
         if (dataframe['enter_long'] == 1).any():
             dataframe.loc[dataframe['enter_long'] == 1, 'enter_tag'] = 'itest'
-        
+
         # Debug summary (stdout captured by runner)
         try:
             total_entries = int(dataframe['enter_long'].sum())

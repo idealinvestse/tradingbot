@@ -1,6 +1,5 @@
 import abc
 import logging
-from typing import List
 
 from app.data_services.models import NewsArticle
 
@@ -13,7 +12,7 @@ class BaseSentimentAnalyzer(abc.ABC):
     """
 
     @abc.abstractmethod
-    def analyze(self, articles: List[NewsArticle]) -> List[NewsArticle]:
+    def analyze(self, articles: list[NewsArticle]) -> list[NewsArticle]:
         """
         Analyzes a list of news articles and enriches them with sentiment data.
 
@@ -31,7 +30,7 @@ class DemoSentimentAnalyzer(BaseSentimentAnalyzer):
     POSITIVE_KEYWORDS = ["surges", "historic rally", "all-time high", "upgrade", "confidence", "adoption"]
     NEGATIVE_KEYWORDS = ["uncertainty", "clouds", "regulatory", "divided", "impact"]
 
-    def analyze(self, articles: List[NewsArticle]) -> List[NewsArticle]:
+    def analyze(self, articles: list[NewsArticle]) -> list[NewsArticle]:
         """
         Analyzes articles based on the presence of positive or negative keywords.
         """
@@ -39,7 +38,7 @@ class DemoSentimentAnalyzer(BaseSentimentAnalyzer):
 
         for article in articles:
             text_to_analyze = (article.headline + " " + (article.summary or "")).lower()
-            
+
             score = 0.0
             pos_count = sum(1 for keyword in self.POSITIVE_KEYWORDS if keyword in text_to_analyze)
             neg_count = sum(1 for keyword in self.NEGATIVE_KEYWORDS if keyword in text_to_analyze)
@@ -57,7 +56,7 @@ class DemoSentimentAnalyzer(BaseSentimentAnalyzer):
             article.sentiment_score = score
             article.sentiment_label = label
             logger.debug(
-                f'Analyzed headline "{article.headline[:30]}...": ' 
+                f'Analyzed headline "{article.headline[:30]}...": '
                 f'Score={article.sentiment_score}, Label={article.sentiment_label}'
             )
 

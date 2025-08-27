@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """A script to download the precompiled TA-Lib wheel for Windows."""
 
 import logging

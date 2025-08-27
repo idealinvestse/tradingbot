@@ -2,16 +2,14 @@
 
 import sqlite3
 import unittest
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from datetime import timedelta
 
 import pandas as pd
 
+from app.data_services.models import NewsArticle
 from app.reasoning.ml_model import PlaceholderMLModel
 from app.reasoning.rule_based_model import RuleBasedModel
-from app.strategies.persistence.sqlite import connect, ensure_schema, upsert_news_articles
-from app.data_services.models import NewsArticle
+from app.strategies.persistence.sqlite import ensure_schema, upsert_news_articles
 
 
 class TestRuleBasedModel(unittest.TestCase):

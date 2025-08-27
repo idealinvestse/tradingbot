@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
+
 
 # Ensure project root is on sys.path so 'app' package resolves when running this script directly
 def project_root() -> Path:
@@ -13,9 +14,9 @@ _ROOT = project_root()
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from app.strategies.registry import export_sqlite, load_registry, write_markdown
 from app.strategies.introspect import discover_strategies, to_json_dict
 from app.strategies.metrics import index_backtests, index_hyperopts
+from app.strategies.registry import export_sqlite, load_registry, write_markdown
 from app.strategies.reporting import generate_results_markdown_from_db
 
 

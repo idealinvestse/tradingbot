@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import ast
-import json
 import re
-from dataclasses import dataclass, asdict
+from collections.abc import Iterable
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
-
+from typing import Any
 
 INDICATOR_KEYWORDS = [
     # Common TA keywords (case-insensitive)
@@ -41,13 +40,13 @@ class ParameterInfo:
 class StrategyInfo:
     class_name: str
     file_path: str
-    timeframe: Optional[str]
-    parameters: List[ParameterInfo]
-    indicators: List[str]
-    docstring: Optional[str]
+    timeframe: str | None
+    parameters: list[ParameterInfo]
+    indicators: list[str]
+    docstring: str | None
 
 
-def _indicator_scan(text: str) -> List[str]:
+def _indicator_scan(text: str) -> list[str]:
     found = set()
     for kw in INDICATOR_KEYWORDS:
         if re.search(rf"\b{re.escape(kw)}\b", text, flags=re.IGNORECASE):
@@ -55,7 +54,7 @@ def _indicator_scan(text: str) -> List[str]:
     return sorted(found)
 
 
-def _get_name_from_node(node: ast.AST) -> Optional[str]:
+def _get_name_from_node(node: ast.AST) -> str | None:
     if isinstance(node, ast.Name):
         return node.id
     if isinstance(node, ast.Attribute):
@@ -63,11 +62,11 @@ def _get_name_from_node(node: ast.AST) -> Optional[str]:
     return None
 
 
-def parse_strategy_file(path: Path) -> List[StrategyInfo]:
+def parse_strategy_file(path: Path) -> list[StrategyInfo]:
     src = path.read_text(encoding="utf-8")
     tree = ast.parse(src)
 
-    results: List[StrategyInfo] = []
+    results: list[StrategyInfo] = []
 
     for node in tree.body:
         if isinstance(node, ast.ClassDef):
@@ -77,8 +76,8 @@ def parse_strategy_file(path: Path) -> List[StrategyInfo]:
                 continue
 
             # Extract class-level fields (e.g., timeframe = "5m") and parameter attributes
-            timeframe: Optional[str] = None
-            params: List[ParameterInfo] = []
+            timeframe: str | None = None
+            params: list[ParameterInfo] = []
 
             for stmt in node.body:
                 if isinstance(stmt, ast.Assign):
@@ -112,8 +111,8 @@ def parse_strategy_file(path: Path) -> List[StrategyInfo]:
     return results
 
 
-def discover_strategies(base_dir: Path) -> List[StrategyInfo]:
-    items: List[StrategyInfo] = []
+def discover_strategies(base_dir: Path) -> list[StrategyInfo]:
+    items: list[StrategyInfo] = []
     for p in sorted(base_dir.glob("*.py")):
         try:
             items.extend(parse_strategy_file(p))
@@ -123,7 +122,7 @@ def discover_strategies(base_dir: Path) -> List[StrategyInfo]:
     return items
 
 
-def to_json_dict(items: Iterable[StrategyInfo]) -> Dict[str, Any]:
+def to_json_dict(items: Iterable[StrategyInfo]) -> dict[str, Any]:
     return {
         "updated_utc": None,
         "strategies": [

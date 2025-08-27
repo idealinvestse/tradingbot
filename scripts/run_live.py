@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Dict, Optional
 
 from app.strategies.runner import run_live
 
 
-def _parse_exposures(items: Optional[list[str]]) -> Optional[Dict[str, float]]:
+def _parse_exposures(items: list[str] | None) -> dict[str, float] | None:
     if not items:
         return None
-    out: Dict[str, float] = {}
+    out: dict[str, float] = {}
     for it in items:
         if "=" not in it:
             continue

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple
-import os
 import json
-import time
+import os
 import sqlite3
+import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from .logging_utils import get_json_logger
 from .persistence.sqlite import connect as sqlite_connect
@@ -20,16 +20,16 @@ class RiskConfig:
     Extend this with real guardrails (drawdown, concurrent trades, exposure) as needed.
     """
 
-    max_concurrent_backtests: Optional[int] = None
+    max_concurrent_backtests: int | None = None
     concurrency_ttl_sec: int = 900
-    state_dir: Optional[Path] = None
-    circuit_breaker_file: Optional[Path] = None
+    state_dir: Path | None = None
+    circuit_breaker_file: Path | None = None
     allow_run_when_cb: bool = False
-    max_backtest_drawdown_pct: Optional[float] = None  # e.g., 0.2 for 20%
-    db_path: Optional[Path] = None
+    max_backtest_drawdown_pct: float | None = None  # e.g., 0.2 for 20%
+    db_path: Path | None = None
     # Live trading guardrails
-    live_max_concurrent_trades: Optional[int] = None
-    live_max_per_market_exposure_pct: Optional[float] = None  # 0..1 (values >1 treated as percent)
+    live_max_concurrent_trades: int | None = None
+    live_max_per_market_exposure_pct: float | None = None  # 0..1 (values >1 treated as percent)
 
 
 class RiskManager:
@@ -42,7 +42,7 @@ class RiskManager:
     - circuit breaker state
     """
 
-    def __init__(self, config: Optional[RiskConfig] = None) -> None:
+    def __init__(self, config: RiskConfig | None = None) -> None:
         logger = get_json_logger("risk", static_fields={"op": "__init__"})
         self.cfg = config or self._load_from_env()
         logger.debug("risk_manager_initialized", extra={k: str(v) for k, v in self.cfg.__dict__.items() if v is not None})
@@ -116,10 +116,10 @@ class RiskManager:
         *,
         kind: str,
         strategy: str,
-        timeframe: Optional[str],
-        context: Optional[Dict[str, Any]],
-        correlation_id: Optional[str],
-    ) -> Tuple[bool, Optional[str]]:
+        timeframe: str | None,
+        context: dict[str, Any] | None,
+        correlation_id: str | None,
+    ) -> tuple[bool, str | None]:
         """Perform a pre-run guardrail check.
 
         Returns (allowed, reason_if_blocked).
@@ -203,8 +203,8 @@ class RiskManager:
 
     # ---- Concurrency slots ----
     def acquire_run_slot(
-        self, *, kind: str, correlation_id: Optional[str]
-    ) -> Tuple[bool, Optional[str], Optional[Path]]:
+        self, *, kind: str, correlation_id: str | None
+    ) -> tuple[bool, str | None, Path | None]:
         """Acquire a concurrency slot using lock files.
 
         Returns (allowed, reason, lock_path). Caller should invoke release_run_slot(lock_path).
@@ -229,7 +229,7 @@ class RiskManager:
         logger.info("slot_acquired", extra={"kind": kind, "active_before": count, "lock": str(lock)})
         return True, None, lock
 
-    def release_run_slot(self, lock_path: Optional[Path], *, correlation_id: Optional[str]) -> None:
+    def release_run_slot(self, lock_path: Path | None, *, correlation_id: str | None) -> None:
         logger = get_json_logger(
             "risk",
             static_fields={"correlation_id": correlation_id} if correlation_id else None,
@@ -249,7 +249,7 @@ class RiskManager:
         d.mkdir(parents=True, exist_ok=True)
         return d
 
-    def _create_lock(self, kind: str, correlation_id: Optional[str]) -> Path:
+    def _create_lock(self, kind: str, correlation_id: str | None) -> Path:
         rd = self._running_dir()
         name = f"{kind}_{int(time.time())}_{os.getpid()}"
         if correlation_id:
@@ -290,7 +290,7 @@ class RiskManager:
                     logger.warning("stale_lock_cleanup_failed", extra={"lock_file": str(p), "error": str(e)})
         return count
 
-    def _circuit_breaker_active(self, *, correlation_id: Optional[str] = None) -> Tuple[bool, Optional[str]]:
+    def _circuit_breaker_active(self, *, correlation_id: str | None = None) -> tuple[bool, str | None]:
         logger = get_json_logger(
             "risk",
             static_fields={"correlation_id": correlation_id, "op": "_circuit_breaker_active"} if correlation_id else {"op": "_circuit_breaker_active"},
@@ -324,7 +324,7 @@ class RiskManager:
             logger.error("circuit_breaker_parse_error", extra={"path": str(cb), "error": str(e)})
             return True, "circuit_breaker_parse_error"
 
-    def _recent_backtest_drawdown(self, *, correlation_id: Optional[str] = None) -> Optional[float]:
+    def _recent_backtest_drawdown(self, *, correlation_id: str | None = None) -> float | None:
         """Return most recent backtest 'max_drawdown_account' metric if available."""
         logger = get_json_logger(
             "risk",
@@ -371,18 +371,18 @@ class RiskManager:
     def log_incident(
         self,
         *,
-        run_id: Optional[str],
+        run_id: str | None,
         severity: str,
         description: str,
-        log_excerpt_path: Optional[str] = None,
-        correlation_id: Optional[str] = None,
+        log_excerpt_path: str | None = None,
+        correlation_id: str | None = None,
     ) -> None:
         """Log an incident to the database."""
         logger = get_json_logger(
             "risk",
             static_fields={"correlation_id": correlation_id} if correlation_id else None,
         )
-        
+
         # Normalize severity and generate incident_id early for consistent logging
         sev = (severity or "").strip().lower()
         if sev not in {"info", "warning", "error", "critical"}:

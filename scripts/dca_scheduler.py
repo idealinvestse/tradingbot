@@ -6,7 +6,6 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import List
 
 
 @dataclass
@@ -18,7 +17,7 @@ class DcaOrder:
 
 @dataclass
 class DcaPlan:
-    orders: List[DcaOrder]
+    orders: list[DcaOrder]
 
 
 def build_dca_plan(start: datetime, end: datetime, interval: str, pair: str, amount: float) -> DcaPlan:
@@ -31,7 +30,7 @@ def build_dca_plan(start: datetime, end: datetime, interval: str, pair: str, amo
     if interval not in delta_map:
         raise ValueError(f"Unsupported interval: {interval}")
 
-    orders: List[DcaOrder] = []
+    orders: list[DcaOrder] = []
     t = start
     step = delta_map[interval]
     while t <= end:

@@ -1,7 +1,6 @@
 import abc
 import datetime
 import logging
-from typing import List
 
 from app.data_services.models import NewsArticle
 
@@ -14,7 +13,7 @@ class BaseNewsFetcher(abc.ABC):
     """
 
     @abc.abstractmethod
-    def fetch_news(self, symbols: List[str], since: datetime.datetime, until: datetime.datetime) -> List[NewsArticle]:
+    def fetch_news(self, symbols: list[str], since: datetime.datetime, until: datetime.datetime) -> list[NewsArticle]:
         """
         Fetches news articles for a given list of symbols within a time range.
 
@@ -32,7 +31,7 @@ class DemoNewsFetcher(BaseNewsFetcher):
     Useful for development and testing without requiring an API key.
     """
 
-    def fetch_news(self, symbols: List[str], since: datetime.datetime, until: datetime.datetime) -> List[NewsArticle]:
+    def fetch_news(self, symbols: list[str], since: datetime.datetime, until: datetime.datetime) -> list[NewsArticle]:
         """
         Returns a list of dummy news articles for the requested symbols.
         """

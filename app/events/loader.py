@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Union
 
 from pydantic import ValidationError
 
 from .models import EventSchedule
 
 
-def load_events(path: Union[str, Path]) -> EventSchedule:
+def load_events(path: str | Path) -> EventSchedule:
     """Load events from a JSON file into an EventSchedule.
 
     Example schema (see events.sample.json):

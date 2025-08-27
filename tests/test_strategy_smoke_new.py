@@ -22,26 +22,30 @@ def _load_module(path: str, name: str):
 def test_mean_reversion_bb_loads():
     module = _load_module("user_data/strategies/mean_reversion_bb.py", "mean_reversion_bb")
     assert hasattr(module, "MeanReversionBbStrategy")
-    s = module.MeanReversionBbStrategy()
+    config = {"dry_run": True, "stake_currency": "USDT"}
+    s = module.MeanReversionBbStrategy(config)
     assert s.timeframe in {"1m", "5m", "15m", "1h", "4h", "1d"}
 
 
 def test_breakout_bb_vol_loads():
     module = _load_module("user_data/strategies/breakout_bb_vol.py", "breakout_bb_vol")
     assert hasattr(module, "BreakoutBbVolStrategy")
-    s = module.BreakoutBbVolStrategy()
+    config = {"dry_run": True, "stake_currency": "USDT"}
+    s = module.BreakoutBbVolStrategy(config)
     assert s.timeframe in {"1m", "5m", "15m", "1h", "4h", "1d"}
 
 
 def test_hodl_loads():
     module = _load_module("user_data/strategies/hodl_strategy.py", "hodl_strategy")
     assert hasattr(module, "HodlStrategy")
-    s = module.HodlStrategy()
+    config = {"dry_run": True, "stake_currency": "USDT"}
+    s = module.HodlStrategy(config)
     assert s.timeframe in {"1m", "5m", "15m", "1h", "4h", "1d"}
 
 
 def test_template_loads():
     module = _load_module("user_data/strategies/_template_strategy.py", "_template_strategy")
     assert hasattr(module, "TemplateStrategy")
-    s = module.TemplateStrategy()
+    config = {"dry_run": True, "stake_currency": "USDT"}
+    s = module.TemplateStrategy(config)
     assert s.timeframe in {"1m", "5m", "15m", "1h", "4h", "1d"}

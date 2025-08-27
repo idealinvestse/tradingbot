@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Dict, Optional
-
 from decimal import Decimal
+
 import pandas as pd
-from freqtrade.strategy import IntParameter, DecimalParameter
+from freqtrade.strategy import DecimalParameter, IntParameter
 from freqtrade.strategy.interface import IStrategy
 from pandas import DataFrame
 
@@ -25,7 +24,7 @@ class MomentumMacdRsiStrategy(IStrategy):
     startup_candle_count: int = 200
     process_only_new_candles: bool = True
 
-    minimal_roi: Dict[str, float] = {
+    minimal_roi: dict[str, float] = {
         "0": 0.184,
         "37": 0.056,
         "88": 0.04,
@@ -62,7 +61,7 @@ class MomentumMacdRsiStrategy(IStrategy):
     atr_stop_mult = DecimalParameter(1.5, 4.0, decimals=1, default=2.4, space="buy")
     max_stake_pct = DecimalParameter(0.02, 0.20, decimals=2, default=0.07, space="buy")
 
-    def populate_indicators(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.sort_index()
 
         # MACD (12/26/9)
@@ -103,7 +102,7 @@ class MomentumMacdRsiStrategy(IStrategy):
 
         return df
 
-    def populate_entry_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         df["enter_long"] = (
             (df["macdhist"] > 0) &
@@ -116,7 +115,7 @@ class MomentumMacdRsiStrategy(IStrategy):
         df.loc[df["enter_long"], "enter_tag"] = "mom_macd_rsi"
         return df
 
-    def populate_exit_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         df["exit_long"] = (
             ((df["macdhist"] < 0) | (df["rsi"] < 50)) &
@@ -132,7 +131,7 @@ class MomentumMacdRsiStrategy(IStrategy):
         current_time,  # datetime
         current_rate: float,
         **kwargs,
-    ) -> Optional[float]:
+    ) -> float | None:
         """ATR-baserad position sizing (samma logik som i MaCrossoverStrategy)."""
         if not hasattr(self, "dp") or self.dp is None:
             return None

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import Dict, Optional
 from decimal import Decimal
 
 import pandas as pd
-from pandas import DataFrame
-from freqtrade.strategy import IntParameter, DecimalParameter
+from freqtrade.strategy import DecimalParameter, IntParameter
 from freqtrade.strategy.interface import IStrategy
+from pandas import DataFrame
 
 
 class BreakoutBbVolStrategy(IStrategy):
@@ -22,7 +21,7 @@ class BreakoutBbVolStrategy(IStrategy):
     startup_candle_count: int = 200
     process_only_new_candles: bool = True
 
-    minimal_roi: Dict[str, float] = {
+    minimal_roi: dict[str, float] = {
         "0": 0.06,
         "60": 0.03,
         "180": 0.0,
@@ -59,7 +58,7 @@ class BreakoutBbVolStrategy(IStrategy):
         },
     }
 
-    def populate_indicators(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.sort_index()
 
         # Bollinger Bands + width
@@ -89,7 +88,7 @@ class BreakoutBbVolStrategy(IStrategy):
 
         return df
 
-    def populate_entry_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         df["enter_long"] = (
             (df["close"] > df["dc_high"].shift(1)) &  # bryt förbi tidigare max
@@ -100,7 +99,7 @@ class BreakoutBbVolStrategy(IStrategy):
         df.loc[df["enter_long"], "enter_tag"] = "breakout_bb_vol"
         return df
 
-    def populate_exit_trend(self, dataframe: DataFrame, metadata: Dict) -> DataFrame:
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         # Enkel exit: close under BB-upper efter breakout (svaghet) – trailing hanterar vinster
         df["exit_long"] = (
@@ -116,7 +115,7 @@ class BreakoutBbVolStrategy(IStrategy):
         current_time,
         current_rate: float,
         **kwargs,
-    ) -> Optional[float]:
+    ) -> float | None:
         if not hasattr(self, "dp") or self.dp is None:
             return None
         try:

@@ -4,8 +4,9 @@ import datetime
 import hashlib
 import json
 import sqlite3
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from app.data_services.models import NewsArticle
@@ -201,7 +202,7 @@ def _csv(values: Iterable[Any] | None) -> str:
     return ",".join(str(v) for v in values)
 
 
-def upsert_registry(conn: sqlite3.Connection, registry: Dict[str, Any]) -> None:
+def upsert_registry(conn: sqlite3.Connection, registry: dict[str, Any]) -> None:
     cur = conn.cursor()
 
     for s in registry.get("strategies", []):
@@ -325,7 +326,7 @@ def get_news_articles_in_range(
     return [dict(row) for row in rows]
 
 
-def upsert_news_articles(conn: sqlite3.Connection, articles: list["NewsArticle"]) -> None:
+def upsert_news_articles(conn: sqlite3.Connection, articles: list[NewsArticle]) -> None:
     """
     Upserts a list of news articles into the database.
     The ID is a SHA256 hash of the article URL to ensure uniqueness.

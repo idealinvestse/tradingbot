@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
-from typing import List, Optional
+from datetime import datetime, timedelta, timezone
 
 from .base import BaseNewsProvider, NewsItem
 
@@ -12,10 +11,10 @@ class MockNewsProvider(BaseNewsProvider):
     Deterministic pseudo-news generated per-hour per-symbol for reproducible tests.
     """
 
-    def get_latest(self, symbols: List[str], since: Optional[datetime] = None) -> List[NewsItem]:
+    def get_latest(self, symbols: list[str], since: datetime | None = None) -> list[NewsItem]:
         now = datetime.now(timezone.utc)
         hour = (since or now).replace(minute=0, second=0, microsecond=0)
-        items: List[NewsItem] = []
+        items: list[NewsItem] = []
         for sym in symbols:
             # Generate one item per symbol per hour window
             h = hash((sym, hour.isoformat()))

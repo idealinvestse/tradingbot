@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 import datetime
+import gzip
 import json
 import os
-import gzip
-import zipfile
 import shutil
 import subprocess
 import sys
 import time
 import uuid
+import zipfile
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Optional
 
 from app.data_services.news_fetcher import DemoNewsFetcher
 from app.data_services.sentiment_analyzer import DemoSentimentAnalyzer
@@ -31,16 +31,16 @@ class RunResult:
     returncode: int
     stdout: str
     stderr: str
-    correlation_id: Optional[str] = None
+    correlation_id: str | None = None
 
 
 def _run(
-    cmd: List[str],
-    cwd: Optional[Path] = None,
-    timeout: Optional[int] = None,
+    cmd: list[str],
+    cwd: Path | None = None,
+    timeout: int | None = None,
     *,
-    correlation_id: Optional[str] = None,
-    env: Optional[dict[str, str]] = None,
+    correlation_id: str | None = None,
+    env: dict[str, str] | None = None,
 ) -> RunResult:
     """Execute a command and capture output.
 
@@ -84,10 +84,10 @@ def build_freqtrade_backtest_cmd(
     strategy: str,
     timerange: str,
     *,
-    pairs_file: Optional[Path] = None,
-    timeframe: Optional[str] = None,
-    addl_args: Optional[Iterable[str]] = None,
-) -> List[str]:
+    pairs_file: Path | None = None,
+    timeframe: str | None = None,
+    addl_args: Iterable[str] | None = None,
+) -> list[str]:
     """Construct a freqtrade backtest CLI command (local install).
 
     Example equivalent: freqtrade backtesting --config user_data/configs/config.bt.json --strategy MaCrossoverStrategy --timerange 20240101-20240701
@@ -104,7 +104,7 @@ def build_freqtrade_backtest_cmd(
             "addl_args": list(addl_args) if addl_args else None,
         },
     )
-    cmd: List[str] = [
+    cmd: list[str] = [
         sys.executable,
         "-m",
         "freqtrade",
@@ -130,9 +130,9 @@ def build_freqtrade_backtest_cmd(
 def build_freqtrade_live_cmd(
     config_path: Path,
     *,
-    strategy: Optional[str] = None,
-    addl_args: Optional[Iterable[str]] = None,
-) -> List[str]:
+    strategy: str | None = None,
+    addl_args: Iterable[str] | None = None,
+) -> list[str]:
     """Construct a freqtrade live trade CLI command (local install).
 
     Example equivalent: freqtrade trade --config user_data/configs/config.mainnet.json --strategy MaCrossoverStrategy
@@ -147,7 +147,7 @@ def build_freqtrade_live_cmd(
             "addl_args": list(addl_args) if addl_args else None,
         },
     )
-    cmd: List[str] = [
+    cmd: list[str] = [
         sys.executable,
         "-m",
         "freqtrade",
@@ -165,14 +165,14 @@ def build_freqtrade_live_cmd(
 def build_freqtrade_hyperopt_cmd(
     config_path: Path,
     strategy: str,
-    spaces: List[str],
+    spaces: list[str],
     epochs: int,
     *,
-    timerange: Optional[str] = None,
-    pairs_file: Optional[Path] = None,
-    timeframe: Optional[str] = None,
-    addl_args: Optional[Iterable[str]] = None,
-) -> List[str]:
+    timerange: str | None = None,
+    pairs_file: Path | None = None,
+    timeframe: str | None = None,
+    addl_args: Iterable[str] | None = None,
+) -> list[str]:
     """Construct a freqtrade hyperopt CLI command (local install).
 
     Example equivalent: freqtrade hyperopt --config user_data/configs/config.bt.json --strategy MaCrossoverStrategy --spaces buy sell roi stoploss --epochs 100
@@ -191,7 +191,7 @@ def build_freqtrade_hyperopt_cmd(
             "addl_args": list(addl_args) if addl_args else None,
         },
     )
-    cmd: List[str] = [
+    cmd: list[str] = [
         sys.executable,
         "-m",
         "freqtrade",
@@ -219,13 +219,13 @@ def build_freqtrade_hyperopt_cmd(
 def run_live(
     config_path: Path,
     *,
-    strategy: Optional[str] = None,
-    addl_args: Optional[Iterable[str]] = None,
-    cwd: Optional[Path] = None,
-    timeout: Optional[int] = None,
-    correlation_id: Optional[str] = None,
-    open_trades_count: Optional[int] = None,
-    market_exposure_pct: Optional[dict[str, float]] = None,
+    strategy: str | None = None,
+    addl_args: Iterable[str] | None = None,
+    cwd: Path | None = None,
+    timeout: int | None = None,
+    correlation_id: str | None = None,
+    open_trades_count: int | None = None,
+    market_exposure_pct: dict[str, float] | None = None,
 ) -> RunResult:
     """Start a live trading process with pre-run RiskManager guardrails.
 
@@ -287,10 +287,10 @@ def run_live(
 
 def _prepare_external_data(
     timerange: str,
-    pairs: List[str],
+    pairs: list[str],
     db_path: Path,
     *,
-    correlation_id: Optional[str] = None,
+    correlation_id: str | None = None,
 ):
     """Fetches, analyzes, and persists external data like news and sentiment."""
     logger = get_json_logger(
@@ -345,13 +345,13 @@ def run_backtest(
     strategy: str,
     timerange: str,
     *,
-    pairs_file: Optional[Path] = None,
-    timeframe: Optional[str] = None,
-    addl_args: Optional[Iterable[str]] = None,
-    cwd: Optional[Path] = None,
-    timeout: Optional[int] = None,
-    correlation_id: Optional[str] = None,
-    db_path: Optional[Path] = None,
+    pairs_file: Path | None = None,
+    timeframe: str | None = None,
+    addl_args: Iterable[str] | None = None,
+    cwd: Path | None = None,
+    timeout: int | None = None,
+    correlation_id: str | None = None,
+    db_path: Path | None = None,
 ) -> RunResult:
     cid = correlation_id or uuid.uuid4().hex
     logger = get_json_logger(
@@ -370,10 +370,10 @@ def run_backtest(
         final_db_path = Path.cwd() / "user_data" / "backtest_results" / "index.db"
         pairs_to_fetch = []
         if pairs_file and pairs_file.exists():
-            with open(pairs_file, 'r') as f:
+            with open(pairs_file) as f:
                 pairs_to_fetch = [line.strip() for line in f if line.strip()]
         elif config_path and config_path.exists():
-            with open(config_path, 'r') as f:
+            with open(config_path) as f:
                 config_data = json.load(f)
                 pairs_to_fetch = config_data.get('exchange', {}).get('pair_whitelist', [])
 
@@ -416,7 +416,7 @@ def run_backtest(
 
     # Determine export filename based on config to ensure deterministic location/name
     try:
-        with open(config_path, "r") as cf:
+        with open(config_path) as cf:
             cfg = json.load(cf)
         export_dir_str = cfg.get("exportdir")
     except Exception as e:  # pragma: no cover - defensive
@@ -425,7 +425,7 @@ def run_backtest(
     export_dir = Path(export_dir_str) if export_dir_str else (Path.cwd() / "user_data" / "backtest_results")
     export_dir.mkdir(parents=True, exist_ok=True)
     export_filename = export_dir / "trades.json"
-    extra_args: List[str] = list(addl_args) if addl_args else []
+    extra_args: list[str] = list(addl_args) if addl_args else []
     # Ask freqtrade to export to our deterministic path
     extra_args += ["--export-filename", str(export_filename)]
     logger.debug(
@@ -515,7 +515,7 @@ def run_backtest(
         # Normalize JSON structure to {"trades": [...]}
         if res.returncode == 0 and export_filename.exists():
             try:
-                with open(export_filename, "r") as jf:
+                with open(export_filename) as jf:
                     data = json.load(jf)
                 def is_trade_dict(d: dict) -> bool:
                     # Heuristic keys often present in freqtrade exports
@@ -557,7 +557,7 @@ def run_backtest(
                             with gzip.open(p, "rt") as f:
                                 return json.load(f)
                         if p.suffix == ".json":
-                            with open(p, "r") as f:
+                            with open(p) as f:
                                 return json.load(f)
                         if p.suffix == ".zip":
                             try:
@@ -638,16 +638,16 @@ def run_backtest(
 def run_hyperopt(
     config_path: Path,
     strategy: str,
-    spaces: List[str],
+    spaces: list[str],
     epochs: int,
     *,
-    timerange: Optional[str] = None,
-    pairs_file: Optional[Path] = None,
-    timeframe: Optional[str] = None,
-    addl_args: Optional[Iterable[str]] = None,
-    cwd: Optional[Path] = None,
-    timeout: Optional[int] = None,
-    correlation_id: Optional[str] = None,
+    timerange: str | None = None,
+    pairs_file: Path | None = None,
+    timeframe: str | None = None,
+    addl_args: Iterable[str] | None = None,
+    cwd: Path | None = None,
+    timeout: int | None = None,
+    correlation_id: str | None = None,
 ) -> RunResult:
     cid = correlation_id or uuid.uuid4().hex
     logger = get_json_logger(

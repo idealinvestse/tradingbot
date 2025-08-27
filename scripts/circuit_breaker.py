@@ -5,10 +5,8 @@ import json
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional
 
 from app.strategies.logging_utils import get_json_logger
-
 
 DEFAULT_STATE_DIR = Path("user_data/state")
 DEFAULT_CB_FILE = DEFAULT_STATE_DIR / "circuit_breaker.json"
@@ -18,7 +16,7 @@ def _iso_now() -> str:
     return datetime.now(tz=timezone.utc).isoformat()
 
 
-def _to_until_iso(minutes: Optional[int], until_iso: Optional[str]) -> Optional[str]:
+def _to_until_iso(minutes: int | None, until_iso: str | None) -> str | None:
     if until_iso:
         # Validate/normalize
         try:
@@ -54,7 +52,7 @@ def cmd_status(file_path: Path, correlation_id: str) -> int:
     return 0
 
 
-def cmd_enable(file_path: Path, reason: str, minutes: Optional[int], until_iso: Optional[str], correlation_id: str) -> int:
+def cmd_enable(file_path: Path, reason: str, minutes: int | None, until_iso: str | None, correlation_id: str) -> int:
     logger = get_json_logger("circuit_breaker", static_fields={"correlation_id": correlation_id})
     file_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {

@@ -4,25 +4,25 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 
-def load_registry(path: Path) -> Dict[str, Any]:
+def load_registry(path: Path) -> dict[str, Any]:
     data = json.loads(path.read_text(encoding="utf-8"))
     if "strategies" not in data or "methods" not in data or "concepts" not in data:
         raise ValueError("Invalid registry JSON: missing required top-level keys")
     return data
 
 
-def _fmt_list(values: List[Any]) -> str:
+def _fmt_list(values: list[Any]) -> str:
     if not values:
         return "-"
     return ", ".join(str(v) for v in values)
 
 
-def generate_markdown(registry: Dict[str, Any]) -> str:
+def generate_markdown(registry: dict[str, Any]) -> str:
     updated = registry.get("updated_utc") or datetime.now(timezone.utc).isoformat()
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append("# Strategier, metoder och koncept – Registry")
     lines.append("")
     lines.append(f"Senast uppdaterad (UTC): {updated}")

@@ -1,22 +1,23 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
 class ParameterInfo(BaseModel):
     type: str
-    default: Optional[Any] = None
+    default: Any | None = None
 
 
 class RiskInfo(BaseModel):
-    minimal_roi: Optional[Dict[str, float]] = None
-    stoploss: Optional[float] = None
-    trailing_stop: Optional[bool] = None
+    minimal_roi: dict[str, float] | None = None
+    stoploss: float | None = None
+    trailing_stop: bool | None = None
 
 
 class PerformanceInfo(BaseModel):
-    last_backtest: Optional[Any] = None
+    last_backtest: Any | None = None
 
 
 class StrategySpec(BaseModel):
@@ -25,13 +26,13 @@ class StrategySpec(BaseModel):
     class_name: str
     file_path: str
     status: str
-    timeframes: List[str] = Field(default_factory=list)
-    markets: List[str] = Field(default_factory=list)
-    indicators: List[str] = Field(default_factory=list)
-    parameters: Dict[str, ParameterInfo] = Field(default_factory=dict)
+    timeframes: list[str] = Field(default_factory=list)
+    markets: list[str] = Field(default_factory=list)
+    indicators: list[str] = Field(default_factory=list)
+    parameters: dict[str, ParameterInfo] = Field(default_factory=dict)
     risk: RiskInfo = Field(default_factory=RiskInfo)
     performance: PerformanceInfo = Field(default_factory=PerformanceInfo)
-    tags: List[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
 
 
 class MethodSpec(BaseModel):
@@ -39,15 +40,15 @@ class MethodSpec(BaseModel):
     name: str
     category: str
     description: str
-    related_strategies: List[str] = Field(default_factory=list)
-    references: List[str] = Field(default_factory=list)
+    related_strategies: list[str] = Field(default_factory=list)
+    references: list[str] = Field(default_factory=list)
 
 
 class ConceptSpec(BaseModel):
     id: str
     name: str
     description: str
-    references: List[str] = Field(default_factory=list)
+    references: list[str] = Field(default_factory=list)
 
 
 class SourceSpec(BaseModel):
@@ -61,7 +62,7 @@ class SourceSpec(BaseModel):
 class RegistrySchema(BaseModel):
     version: int
     updated_utc: str
-    strategies: List[StrategySpec] = Field(default_factory=list)
-    methods: List[MethodSpec] = Field(default_factory=list)
-    concepts: List[ConceptSpec] = Field(default_factory=list)
-    sources: List[SourceSpec] = Field(default_factory=list)
+    strategies: list[StrategySpec] = Field(default_factory=list)
+    methods: list[MethodSpec] = Field(default_factory=list)
+    concepts: list[ConceptSpec] = Field(default_factory=list)
+    sources: list[SourceSpec] = Field(default_factory=list)

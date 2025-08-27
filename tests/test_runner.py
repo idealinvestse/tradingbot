@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-import pytest
-
-from app.strategies.runner import build_freqtrade_hyperopt_cmd, run_hyperopt, RunResult
+from app.strategies.runner import RunResult, build_freqtrade_hyperopt_cmd, run_hyperopt
 
 
 def test_build_freqtrade_hyperopt_cmd() -> None:
@@ -15,15 +12,18 @@ def test_build_freqtrade_hyperopt_cmd() -> None:
     strategy = "MaCrossoverStrategy"
     spaces = ["buy", "sell", "roi", "stoploss"]
     epochs = 100
-    
+
     cmd = build_freqtrade_hyperopt_cmd(
         config_path=config_path,
         strategy=strategy,
         spaces=spaces,
         epochs=epochs
     )
-    
+
+    import sys
     expected = [
+        sys.executable,
+        "-m",
         "freqtrade",
         "hyperopt",
         "--config",
@@ -35,7 +35,7 @@ def test_build_freqtrade_hyperopt_cmd() -> None:
         "--epochs",
         "100",
     ]
-    
+
     assert cmd == expected
 
 
@@ -49,7 +49,7 @@ def test_build_freqtrade_hyperopt_cmd_with_optional_params() -> None:
     timeframe = "5m"
     pairs_file = Path("user_data/pairs.txt")
     addl_args = ["--jobs", "4"]
-    
+
     cmd = build_freqtrade_hyperopt_cmd(
         config_path=config_path,
         strategy=strategy,
@@ -60,8 +60,11 @@ def test_build_freqtrade_hyperopt_cmd_with_optional_params() -> None:
         pairs_file=pairs_file,
         addl_args=addl_args
     )
-    
+
+    import sys
     expected = [
+        sys.executable,
+        "-m",
         "freqtrade",
         "hyperopt",
         "--config",
@@ -81,7 +84,7 @@ def test_build_freqtrade_hyperopt_cmd_with_optional_params() -> None:
         "--jobs",
         "4",
     ]
-    
+
     assert cmd == expected
 
 @patch('app.strategies.runner._run')
@@ -93,10 +96,10 @@ def test_run_hyperopt_success(mock_risk_manager: MagicMock, mock_run: MagicMock)
     mock_rm.pre_run_check.return_value = (True, None)  # Allow run
     mock_rm.acquire_run_slot.return_value = (True, None, Path("/tmp/slot.lock"))  # Acquire slot
     mock_risk_manager.return_value = mock_rm
-    
+
     mock_result = RunResult(0, "stdout output", "stderr output")
     mock_run.return_value = mock_result
-    
+
     # Run the function
     result = run_hyperopt(
         config_path=Path("user_data/configs/config.bt.json"),
@@ -104,12 +107,12 @@ def test_run_hyperopt_success(mock_risk_manager: MagicMock, mock_run: MagicMock)
         spaces=["buy", "sell"],
         epochs=10
     )
-    
+
     # Verify the result
     assert result.returncode == 0
     assert result.stdout == "stdout output"
     assert result.stderr == "stderr output"
-    
+
     # Verify mocks were called correctly
     mock_risk_manager.assert_called_once()
     mock_rm.pre_run_check.assert_called_once()
@@ -125,7 +128,7 @@ def test_run_hyperopt_risk_blocked(mock_risk_manager: MagicMock, mock_run: Magic
     mock_rm = MagicMock()
     mock_rm.pre_run_check.return_value = (False, "test reason")  # Block run
     mock_risk_manager.return_value = mock_rm
-    
+
     # Run the function
     result = run_hyperopt(
         config_path=Path("user_data/configs/config.bt.json"),
@@ -133,12 +136,12 @@ def test_run_hyperopt_risk_blocked(mock_risk_manager: MagicMock, mock_run: Magic
         spaces=["buy", "sell"],
         epochs=10
     )
-    
+
     # Verify the result
     assert result.returncode == 1
     assert result.stdout == ""
     assert result.stderr == "Risk blocked: test reason"
-    
+
     # Verify mocks were called correctly
     mock_risk_manager.assert_called_once()
     mock_rm.pre_run_check.assert_called_once()
@@ -156,7 +159,7 @@ def test_run_hyperopt_concurrency_blocked(mock_risk_manager: MagicMock, mock_run
     mock_rm.pre_run_check.return_value = (True, None)  # Allow run
     mock_rm.acquire_run_slot.return_value = (False, "test reason", None)  # Block slot
     mock_risk_manager.return_value = mock_rm
-    
+
     # Run the function
     result = run_hyperopt(
         config_path=Path("user_data/configs/config.bt.json"),
@@ -164,12 +167,12 @@ def test_run_hyperopt_concurrency_blocked(mock_risk_manager: MagicMock, mock_run
         spaces=["buy", "sell"],
         epochs=10
     )
-    
+
     # Verify the result
     assert result.returncode == 1
     assert result.stdout == ""
     assert result.stderr == "Risk concurrency blocked: test reason"
-    
+
     # Verify mocks were called correctly
     mock_risk_manager.assert_called_once()
     mock_rm.pre_run_check.assert_called_once()
