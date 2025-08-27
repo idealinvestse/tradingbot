@@ -31,7 +31,9 @@ class TestFullStrategyFlow(unittest.TestCase):
         (self.user_data_path / 'data' / 'binance').mkdir(parents=True, exist_ok=True)
 
         # Copy the strategy file to the temporary directory
-        strategy_base_path = Path(os.getenv('STRATEGY_PATH', '/freqtrade/user_data/strategies'))
+        # Default to the repo's local user_data/strategies if STRATEGY_PATH is not set
+        default_base = Path(__file__).resolve().parents[1] / 'user_data' / 'strategies'
+        strategy_base_path = Path(os.getenv('STRATEGY_PATH', str(default_base)))
         source_strategy_path = strategy_base_path / 'IntegrationTestStrategy.py'
         dest_strategy_path = strategies_path / 'IntegrationTestStrategy.py'
         dest_strategy_path.write_text(source_strategy_path.read_text())
@@ -53,9 +55,12 @@ class TestFullStrategyFlow(unittest.TestCase):
             "pairlists": [
                 {"method": "StaticPairList"}
             ],
+            "pair_whitelist": ["BTC/USDT"],
             "stake_currency": "USDT",
             "stake_amount": "unlimited",
             "max_open_trades": 10,
+            # Ensure test data format is understood by Freqtrade
+            "dataformat_ohlcv": "feather",
             "entry_pricing": {
                 "price_side": "ask",
                 "use_order_book": False
@@ -64,7 +69,9 @@ class TestFullStrategyFlow(unittest.TestCase):
                 "price_side": "bid",
                 "use_order_book": False
             },
-            "datadir": str(self.user_data_path / 'data' / 'binance'),
+            # Freqtrade expects datadir/<exchange>/<pair-timeframe>.*
+            # so datadir must be the data root, not including the exchange segment
+            "datadir": str(self.user_data_path / 'data'),
             "exportdir": str(self.user_data_path / 'backtest_results'),
             "custom_config": {
                 "db_path": str(db_path)
