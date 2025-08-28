@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .logging_utils import get_json_logger
-from .persistence.sqlite import connect as sqlite_connect
+from .persistence.sqlite import connect as sqlite_connect, ensure_schema as sqlite_ensure_schema
 
 
 @dataclass
@@ -448,6 +448,8 @@ class RiskManager:
 
         try:
             con = sqlite_connect(db)
+            # Ensure schema is present (creates 'incidents' table if missing)
+            sqlite_ensure_schema(con, with_extended=True)
             cur = con.cursor()
             cur.execute(
                 """
