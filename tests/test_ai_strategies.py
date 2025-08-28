@@ -4,7 +4,7 @@ Unit tests for AI strategy modules.
 
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -13,10 +13,13 @@ import pandas as pd
 import pytest
 
 # Import from actual modules
-from app.strategies.ai_executor import AIStrategyExecutor, AIStrategyConfig, StrategySignal
-from app.strategies.ai_metrics import AIMetricsTracker
-from app.strategies.ai_registry import AIStrategyRegistry
+from pydantic import ValidationError
+
+from app.strategies.ai_executor import AIStrategyExecutor, AIStrategyConfig, StrategySignal, ExecutionResult
+from app.strategies.metrics_collector import MetricsCollector
+from app.strategies.ai_registry import AIStrategyRegistry, AIStrategyType
 from app.strategies.ai_storage import AIStrategyStorage
+from app.strategies.risk import RiskManager
 
 
 @pytest.fixture
@@ -50,276 +53,302 @@ def sample_context():
 
 
 @pytest.fixture
-def ai_executor():
-    """Create AI strategy executor instance."""
-    return AIStrategyExecutor()
+def mock_registry():
+    """Mock AIStrategyRegistry."""
+    return MagicMock(spec=AIStrategyRegistry)
+
+
+@pytest.fixture
+def mock_risk_manager():
+    """Mock RiskManager."""
+    mock = MagicMock(spec=RiskManager)
+    mock.check_risk_limits.return_value = True
+    return mock
+
+
+@pytest.fixture
+def mock_metrics_collector():
+    """Mock MetricsCollector."""
+    return MetricsCollector()
+
+
+@pytest.fixture
+def mock_storage():
+    """Mock AIStrategyStorage."""
+    mock = MagicMock(spec=AIStrategyStorage)
+    mock.save_signal = MagicMock()
+    return mock
+
+
+@pytest.fixture
+def ai_executor(mock_registry, mock_risk_manager, mock_metrics_collector, mock_storage):
+    """Create AI strategy executor instance with mocks."""
+    return AIStrategyExecutor(
+        registry=mock_registry,
+        risk_manager=mock_risk_manager,
+        metrics_collector=mock_metrics_collector,
+        storage=mock_storage
+    )
+
+
+@pytest.fixture
+def get_default_config():
+    """Returns a function to create a default AIStrategyConfig for testing."""
+    def _get_config(**kwargs):
+        defaults = {
+            "name": "Test Strategy",
+            "strategy_type": AIStrategyType.SENTIMENT_ANALYSIS,
+            "description": "Test description",
+            "mechanics": "Test mechanics",
+            "why_effective": "Test effectiveness",
+            "example": "Test example",
+            "performance_metrics": "Test metrics",
+            "2025_insights": "Test insights",
+            "enabled": True,
+        }
+        defaults.update(kwargs)
+        return AIStrategyConfig(**defaults)
+    return _get_config
 
 
 @pytest.fixture
 def ai_registry():
-    """Create AI strategy registry instance."""
+    """Create a fresh AI strategy registry instance for each test."""
     return AIStrategyRegistry()
 
 
 class TestAIStrategyRegistry:
     """Test AI strategy registry."""
-    
-    def test_register_strategy(self, ai_registry):
+
+    def test_register_strategy(self, ai_registry, get_default_config):
         """Test registering a strategy."""
-        config = AIStrategyConfig(
-            name="Test Strategy",
-            strategy_type="sentiment_analysis",
-            enabled=True,
-            min_confidence=0.6
-        )
+        config = get_default_config(name="Test Strategy", strategy_type=AIStrategyType.SENTIMENT_ANALYSIS)
         
         ai_registry.register_strategy(config)
-        assert "sentiment_analysis_test_strategy" in ai_registry.strategies
-        
-    def test_get_strategy(self, ai_registry):
+        key = f"{config.strategy_type.value.lower()}_{config.name.lower().replace(' ', '_')}"
+        assert key in ai_registry.strategies
+
+    def test_get_strategy(self, ai_registry, get_default_config):
         """Test getting a strategy."""
-        config = AIStrategyConfig(
-            name="Test Strategy",
-            strategy_type="sentiment_analysis",
-            enabled=True
-        )
+        config = get_default_config(name="Test Strategy", strategy_type=AIStrategyType.SENTIMENT_ANALYSIS)
         
         ai_registry.register_strategy(config)
-        retrieved = ai_registry.get_strategy("sentiment_analysis_test_strategy")
+        key = f"{config.strategy_type.value.lower()}_{config.name.lower().replace(' ', '_')}"
+        retrieved = ai_registry.get_strategy(key)
         assert retrieved is not None
         assert retrieved.name == "Test Strategy"
-        
-    def test_list_strategies(self, ai_registry):
+
+    def test_list_strategies(self, ai_registry, get_default_config):
         """Test listing strategies."""
-        config1 = AIStrategyConfig(
-            name="Strategy 1",
-            strategy_type="sentiment_analysis",
-            enabled=True
-        )
-        config2 = AIStrategyConfig(
-            name="Strategy 2",
-            strategy_type="predictive_modeling",
-            enabled=False
-        )
+        # Clear default strategies for a clean test
+        ai_registry.strategies = {}
+
+        config1 = get_default_config(name="Strategy 1", strategy_type=AIStrategyType.SENTIMENT_ANALYSIS, enabled=True)
+        config2 = get_default_config(name="Strategy 2", strategy_type=AIStrategyType.PREDICTIVE_MODELING, enabled=False)
         
         ai_registry.register_strategy(config1)
         ai_registry.register_strategy(config2)
         
-        strategies = ai_registry.list_strategies()
-        assert len(strategies) >= 2
+        strategies = ai_registry.strategies
+        assert len(strategies) == 2
         
-        enabled = ai_registry.list_strategies(enabled_only=True)
+        enabled = ai_registry.get_enabled_strategies()
+        assert len(enabled) == 1
         assert all(s.enabled for s in enabled)
 
 
 class TestAIStrategyExecutor:
     """Test AI strategy executor."""
-    
+
     @pytest.mark.asyncio
-    async def test_execute_sentiment_analysis(self, ai_executor, sample_market_data, sample_context):
+    async def test_execute_sentiment_analysis(self, ai_executor, sample_market_data, sample_context, get_default_config):
         """Test sentiment analysis strategy execution."""
-        config = AIStrategyConfig(
+        config = get_default_config(
             name="Test Sentiment",
-            strategy_type="sentiment_analysis",
-            enabled=True,
+            strategy_type=AIStrategyType.SENTIMENT_ANALYSIS,
             min_confidence=0.5
         )
         
-        signal = await ai_executor.execute_strategy(
+        result = await ai_executor.execute_strategy(
             config, sample_market_data, sample_context
         )
         
-        assert signal is not None
-        assert signal.strategy_type == "sentiment_analysis"
-        assert signal.action in ["buy", "sell", "hold"]
-        assert signal.confidence >= 0.5
-        assert signal.entry_price > 0
-        
+        assert isinstance(result, ExecutionResult)
+        assert result.success is True
+        assert result.signal is not None
+        assert result.strategy_type == AIStrategyType.SENTIMENT_ANALYSIS
+        assert result.signal.action == "buy"
+        assert result.signal.confidence >= 0.5
+        ai_executor.risk_manager.check_risk_limits.assert_called_once()
+        ai_executor.storage.save_signal.assert_called_once()
+
     @pytest.mark.asyncio
-    async def test_execute_predictive_modeling(self, ai_executor, sample_market_data, sample_context):
+    async def test_execute_predictive_modeling(self, ai_executor, sample_market_data, sample_context, get_default_config):
         """Test predictive modeling strategy execution."""
-        config = AIStrategyConfig(
+        config = get_default_config(
             name="Test Predictive",
-            strategy_type="predictive_modeling",
-            enabled=True,
-            lookback_period=50
+            strategy_type=AIStrategyType.PREDICTIVE_MODELING,
+            lookback_period=50,
+            min_confidence=0.6
         )
         
-        signal = await ai_executor.execute_strategy(
+        result = await ai_executor.execute_strategy(
             config, sample_market_data, sample_context
         )
         
-        assert signal is not None
-        assert signal.strategy_type == "predictive_modeling"
-        assert signal.entry_price > 0
-        assert signal.stop_loss < signal.entry_price
-        assert signal.take_profit > signal.entry_price
-        
+        assert result.success is True
+        assert result.signal is not None
+        assert result.signal.entry_price > 0
+        assert result.signal.stop_loss < result.signal.entry_price
+
     @pytest.mark.asyncio
-    async def test_execute_arbitrage(self, ai_executor, sample_market_data, sample_context):
-        """Test arbitrage strategy execution."""
-        config = AIStrategyConfig(
-            name="Test Arbitrage",
-            strategy_type="arbitrage",
-            enabled=True
+    async def test_risk_manager_blocks_execution(self, ai_executor, sample_market_data, sample_context, get_default_config):
+        """Test that risk manager can block execution."""
+        ai_executor.risk_manager.check_risk_limits.return_value = False
+        config = get_default_config(
+            name="Test Sentiment",
+            strategy_type=AIStrategyType.SENTIMENT_ANALYSIS,
+            min_confidence=0.5
         )
-        
-        signal = await ai_executor.execute_strategy(
-            config, sample_market_data, sample_context
-        )
-        
-        assert signal is not None
-        assert signal.strategy_type == "arbitrage"
-        assert signal.confidence > 0.5
-        
+
+        result = await ai_executor.execute_strategy(config, sample_market_data, sample_context)
+
+        assert result.success is False
+        assert result.signal is None
+        assert "Risk limits exceeded" in result.error
+        ai_executor.storage.save_signal.assert_not_called()
+
     @pytest.mark.asyncio
-    async def test_execute_multiple_concurrent(self, ai_executor, sample_market_data, sample_context):
+    async def test_execute_all_strategies(self, ai_executor, sample_market_data, sample_context, get_default_config):
         """Test executing multiple strategies concurrently."""
         configs = [
-            AIStrategyConfig(
-                name=f"Strategy {i}",
-                strategy_type=st,
-                enabled=True
-            )
-            for i, st in enumerate([
-                "sentiment_analysis",
-                "momentum_trading",
-                "dca_timing"
-            ])
+            get_default_config(name="S1", strategy_type=AIStrategyType.SENTIMENT_ANALYSIS, min_confidence=0.5),
+            get_default_config(name="S2", strategy_type=AIStrategyType.MOMENTUM_TRADING, min_confidence=0.5),
         ]
-        
-        results = await ai_executor.execute_multiple(
-            configs, sample_market_data, sample_context
-        )
-        
-        assert len(results["successful"]) > 0
-        assert all(isinstance(s, StrategySignal) for s in results["successful"])
-        
+        ai_executor.registry.get_enabled_strategies.return_value = configs
+
+        results = await ai_executor.execute_all_strategies(sample_market_data, sample_context)
+
+        assert len(results) == 2
+        assert sum(1 for r in results if r.success) > 0
+
     @pytest.mark.asyncio
-    async def test_empty_market_data(self, ai_executor, sample_context):
+    async def test_empty_market_data(self, ai_executor, sample_context, get_default_config):
         """Test strategy execution with empty market data."""
-        config = AIStrategyConfig(
+        config = get_default_config(
             name="Test Strategy",
-            strategy_type="momentum_trading",
-            enabled=True
+            strategy_type=AIStrategyType.PREDICTIVE_MODELING,
+            min_confidence=0.6
         )
-        
-        empty_data = pd.DataFrame()
-        signal = await ai_executor.execute_strategy(
-            config, empty_data, sample_context
+
+        empty_data = pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
+        result = await ai_executor.execute_strategy(config, empty_data, sample_context)
+
+        assert result.success is True
+        assert result.signal is not None
+        assert result.signal.entry_price > 0
+
+    def test_validate_signal(self, ai_executor, get_default_config):
+        """Test signal validation logic in the executor."""
+        config = get_default_config(
+            name="Test", strategy_type=AIStrategyType.SENTIMENT_ANALYSIS,
+            min_confidence=0.8, max_risk_per_trade=0.05
         )
-        
-        # Should still generate signal with default values
-        assert signal is not None
-        assert signal.entry_price > 0
-        
-    def test_validate_signal(self, ai_executor):
-        """Test signal validation."""
-        valid_signal = StrategySignal(
-            strategy_name="Test",
-            strategy_type="sentiment_analysis",
-            symbol="BTC/USDT",
-            action="buy",
-            confidence=0.8,
-            suggested_size=0.1,
-            entry_price=50000.0,
-            stop_loss=48000.0,
-            take_profit=52000.0
+
+        # Valid signal
+        signal = StrategySignal(
+            strategy_name="Test", strategy_type=AIStrategyType.SENTIMENT_ANALYSIS, symbol="BTC/USDT",
+            action="buy", confidence=0.85, suggested_size=0.02, entry_price=50000.0, rationale="test"
         )
-        
-        assert ai_executor._validate_signal(valid_signal) is True
-        
-        invalid_signal = StrategySignal(
-            strategy_name="Test",
-            strategy_type="sentiment_analysis",
-            symbol="BTC/USDT",
-            action="buy",
-            confidence=1.5,  # Invalid confidence > 1
-            suggested_size=0.1,
-            entry_price=50000.0
-        )
-        
-        assert ai_executor._validate_signal(invalid_signal) is False
+        validated = ai_executor._validate_signal(signal, config)
+        assert validated is not None
+
+        # Confidence too low
+        low_confidence_signal = signal.model_copy(update={"confidence": 0.7})
+        assert ai_executor._validate_signal(low_confidence_signal, config) is None
+
+        # Adjust position size
+        large_size_signal = signal.model_copy(update={"suggested_size": 0.1})
+        validated_resized = ai_executor._validate_signal(large_size_signal, config)
+        assert validated_resized.suggested_size == config.max_risk_per_trade
 
 
 class TestAIStrategyStorage:
     """Test AI strategy storage."""
-    
+
     @pytest.fixture
     def temp_db(self, tmp_path):
         """Create temporary database."""
         db_path = tmp_path / "test_ai.db"
-        return AIStrategyStorage(str(db_path))
+        storage = AIStrategyStorage(db_path=str(db_path))
+        return storage
         
     def test_save_signal(self, temp_db):
         """Test saving a signal."""
         signal = StrategySignal(
             strategy_name="Test Strategy",
-            strategy_type="sentiment_analysis",
+            strategy_type=AIStrategyType.SENTIMENT_ANALYSIS,
             symbol="BTC/USDT",
             action="buy",
             confidence=0.75,
             suggested_size=0.1,
             entry_price=50000.0,
-            stop_loss=48000.0,
-            take_profit=52000.0,
-            rationale="Test signal"
+            rationale="Positive sentiment surge"
         )
         
-        signal_id = temp_db.save_signal(signal)
-        assert signal_id is not None
-        assert signal_id > 0
+        temp_db.save_signal(
+            strategy_name="Test Strategy",
+            signal_data=signal.model_dump(),
+            timestamp=datetime.utcnow()
+        )
+        
+        signals = temp_db.get_ai_signals(strategy_name="Test Strategy")
+        assert len(signals) == 1
+        assert signals[0]["strategy_name"] == "Test Strategy"
+        assert signals[0]["confidence"] == 0.75
         
     def test_get_signals(self, temp_db):
-        """Test getting signals."""
-        # Save multiple signals
-        for i in range(3):
-            signal = StrategySignal(
-                strategy_name=f"Strategy {i}",
-                strategy_type="momentum_trading",
-                symbol="ETH/USDT",
-                action="buy" if i % 2 == 0 else "sell",
-                confidence=0.6 + i * 0.1,
-                suggested_size=0.1
-            )
-            temp_db.save_signal(signal)
-            
-        # Get all signals
-        signals = temp_db.get_signals()
-        assert len(signals) == 3
-        
-        # Get by strategy
-        momentum_signals = temp_db.get_signals(strategy_name="Strategy 1")
-        assert len(momentum_signals) == 1
-        assert momentum_signals[0]["strategy_name"] == "Strategy 1"
+        """Test retrieving signals."""
+        signal1 = StrategySignal(
+            strategy_name="S1", strategy_type=AIStrategyType.SENTIMENT_ANALYSIS, symbol="BTC/USDT",
+            action="buy", confidence=0.8, rationale="test1", suggested_size=0.1
+        )
+        signal2 = StrategySignal(
+            strategy_name="S2", strategy_type=AIStrategyType.PREDICTIVE_MODELING, symbol="ETH/USDT",
+            action="sell", confidence=0.9, rationale="test2", suggested_size=0.05
+        )
+
+        temp_db.save_signal("S1", signal1.model_dump(), datetime.utcnow())
+        temp_db.save_signal("S2", signal2.model_dump(), datetime.utcnow() - timedelta(minutes=10))
+
+        signals = temp_db.get_ai_signals()
+        assert len(signals) == 2
+
+        s1_signals = temp_db.get_ai_signals(strategy_name="S1")
+        assert len(s1_signals) == 1
+        assert s1_signals[0]["strategy_name"] == "S1"
         
     def test_update_metrics(self, temp_db):
         """Test updating metrics."""
         metrics = {
+            "strategy_type": "Test Type",
             "total_signals": 10,
-            "successful_signals": 7,
-            "win_rate": 0.7,
-            "total_return": 0.15,
-            "sharpe_ratio": 1.2
+            "win_rate": 0.7
         }
-        
         temp_db.update_metrics("Test Strategy", metrics)
         
-        retrieved = temp_db.get_metrics("Test Strategy")
-        assert retrieved is not None
-        assert retrieved["total_signals"] == 10
-        assert retrieved["win_rate"] == 0.7
+        retrieved_metrics = temp_db.get_ai_metrics(strategy_name="Test Strategy")
+        assert retrieved_metrics is not None
+        assert retrieved_metrics["total_signals"] == 10
+        assert retrieved_metrics["win_rate"] == 0.7
         
     def test_database_initialization(self, temp_db):
         """Test database tables are created correctly."""
-        # Check signals table exists
-        temp_db.conn.execute("SELECT * FROM ai_signals LIMIT 1")
+        # Attempting to get data from a fresh DB should return empty lists, not raise an error
+        assert temp_db.get_ai_signals() == []
+        assert temp_db.get_ai_metrics() == []
+        assert temp_db.get_ai_trades() == []
         
-        # Check metrics table exists  
-        temp_db.conn.execute("SELECT * FROM ai_metrics LIMIT 1")
-        
-        # Check configs table exists
-        temp_db.conn.execute("SELECT * FROM ai_configs LIMIT 1")
 
 
 class TestStrategySignalModel:
@@ -330,37 +359,36 @@ class TestStrategySignalModel:
         # Valid signal
         signal = StrategySignal(
             strategy_name="Test",
-            strategy_type="sentiment_analysis",
+            strategy_type=AIStrategyType.SENTIMENT_ANALYSIS,
             symbol="BTC/USDT",
             action="buy",
             confidence=0.8,
-            suggested_size=0.1
+            suggested_size=0.1,
+            rationale="test"
         )
         assert signal.confidence == 0.8
         
-        # Invalid confidence (should be clamped or raise error)
-        with pytest.raises(Exception):
+        # Invalid confidence (should raise pydantic.ValidationError)
+        with pytest.raises(ValidationError):
             StrategySignal(
                 strategy_name="Test",
-                strategy_type="sentiment_analysis",
+                strategy_type=AIStrategyType.SENTIMENT_ANALYSIS,
                 symbol="BTC/USDT",
-                action="invalid_action",  # Invalid action
-                confidence=0.8,
-                suggested_size=0.1
+                action="buy",
+                confidence=1.5,  # Invalid: > 1.0
+                suggested_size=0.1,
+                rationale="test"
             )
             
     def test_signal_json_serialization(self):
         """Test signal JSON serialization."""
         signal = StrategySignal(
             strategy_name="Test Strategy",
-            strategy_type="grid_trading",
+            strategy_type=AIStrategyType.GRID_TRADING,
             symbol="SOL/USDT",
             action="sell",
             confidence=0.65,
             suggested_size=0.05,
-            entry_price=100.0,
-            stop_loss=95.0,
-            take_profit=105.0,
             rationale="Grid level reached"
         )
         
@@ -379,46 +407,35 @@ class TestIntegration:
     """Integration tests for AI strategy system."""
     
     @pytest.mark.asyncio
-    async def test_full_execution_flow(self, tmp_path, sample_market_data, sample_context):
+    async def test_full_execution_flow(self, tmp_path, sample_market_data, sample_context, get_default_config):
         """Test complete execution flow from registry to storage."""
         # Setup
         db_path = tmp_path / "integration_test.db"
-        storage = AIStrategyStorage(str(db_path))
-        registry = AIStrategyRegistry()
-        executor = AIStrategyExecutor()
+        storage = AIStrategyStorage(db_path=str(db_path))
+        registry = AIStrategyRegistry() # Empty registry
+        registry.strategies = {} # Clear default strategies for a clean test
+        risk_manager = RiskManager()
+        metrics_collector = MetricsCollector()
+        executor = AIStrategyExecutor(registry, risk_manager, metrics_collector, storage)
         
         # Register strategy
-        config = AIStrategyConfig(
+        config = get_default_config(
             name="Integration Test Strategy",
-            strategy_type="momentum_trading",
-            enabled=True,
+            strategy_type=AIStrategyType.MOMENTUM_TRADING,
             min_confidence=0.6
         )
         registry.register_strategy(config)
         
         # Execute strategy
-        signal = await executor.execute_strategy(
+        result = await executor.execute_strategy(
             config, sample_market_data, sample_context
         )
         
-        assert signal is not None
-        
-        # Save signal
-        signal_id = storage.save_signal(signal)
-        assert signal_id > 0
-        
-        # Update metrics
-        metrics = {
-            "total_signals": 1,
-            "successful_signals": 1,
-            "win_rate": 1.0
-        }
-        storage.update_metrics(config.name, metrics)
+        assert result.success is True
+        assert result.signal is not None
         
         # Verify storage
-        saved_signals = storage.get_signals(strategy_name=config.name)
+        saved_signals = storage.get_ai_signals(strategy_name=config.name)
         assert len(saved_signals) == 1
-        assert saved_signals[0]["action"] == signal.action
+        assert saved_signals[0]["action"] == result.signal.action
         
-        saved_metrics = storage.get_metrics(config.name)
-        assert saved_metrics["total_signals"] == 1

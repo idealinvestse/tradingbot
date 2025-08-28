@@ -148,8 +148,8 @@ class RiskManager:
             logger.warning("circuit_breaker_block", extra={"reason": reason})
             return False, f"circuit_breaker_active: {reason or ''}"
         
-        # All checks passed
-        return True, None
+        # Continue with other checks
+        return self._continue_pre_run_check(kind, context, correlation_id)
     
     def check_risk_limits(self) -> bool:
         """Check if risk limits allow trading.
