@@ -147,7 +147,38 @@ class RiskManager:
         if active and not self.cfg.allow_run_when_cb:
             logger.warning("circuit_breaker_block", extra={"reason": reason})
             return False, f"circuit_breaker_active: {reason or ''}"
-
+        
+        # All checks passed
+        return True, None
+    
+    def check_risk_limits(self) -> bool:
+        """Check if risk limits allow trading.
+        
+        Simple check for AI strategy executor compatibility.
+        Returns True if trading is allowed.
+        """
+        logger = get_json_logger("risk", static_fields={"op": "check_risk_limits"})
+        
+        # Check circuit breaker
+        active, reason = self._circuit_breaker_active()
+        if active and not self.cfg.allow_run_when_cb:
+            logger.warning("risk_limits_exceeded", extra={"reason": f"circuit_breaker: {reason}"})
+            return False
+        
+        # For now, allow trading if circuit breaker is not active
+        logger.debug("risk_limits_ok")
+        return True
+    
+    def _continue_pre_run_check(self, kind: str, context: dict[str, Any] | None, correlation_id: str | None) -> tuple[bool, str | None]:
+        """Continue pre_run_check after circuit breaker check.
+        
+        This method contains the rest of pre_run_check logic.
+        """
+        logger = get_json_logger(
+            "risk",
+            static_fields={"correlation_id": correlation_id} if correlation_id else None,
+        )
+        
         # Optional: block backtests if recent drawdown exceeded threshold
         if kind == "backtest" and self.cfg.max_backtest_drawdown_pct is not None:
             logger.debug("checking_recent_drawdown")

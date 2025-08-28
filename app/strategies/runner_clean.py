@@ -27,7 +27,8 @@ from .risk import RiskManager
 from .ai_registry import AIStrategyRegistry
 from .ai_executor import AIStrategyExecutor
 from .ai_storage import AIStrategyStorage
-from .ai_metrics import AIMetricsTracker
+from .ai_metrics import AIStrategyMetrics
+
 
 @dataclass
 class RunResult:
@@ -35,6 +36,7 @@ class RunResult:
     stdout: str
     stderr: str
     correlation_id: str | None = None
+
 
 def _run(
     cmd: list[str],
@@ -48,25 +50,6 @@ def _run(
 
     Note: This is a thin wrapper. Callers should pass explicit arguments and avoid shell=True.
     """
-
-
-@dataclass
-class RunResult:
-    returncode: int
-    stdout: str
-    stderr: str
-    correlation_id: str | None = None
-
-
-def _run(
-    cmd: list[str],
-    cwd: Path | None = None,
-    timeout: int | None = None,
-    *,
-    correlation_id: str | None = None,
-    env: dict[str, str] | None = None,
-) -> RunResult:
-    """Execute a command and capture output."""
     logger = get_json_logger(
         "runner",
         static_fields={"correlation_id": correlation_id} if correlation_id else {},
@@ -118,7 +101,18 @@ async def run_ai_strategies(
     timeout: int = 300,
     correlation_id: str | None = None,
 ) -> dict:
-    """Run AI strategies with risk management integration."""
+    """Run AI strategies with risk management integration.
+    
+    Args:
+        symbol: Trading pair symbol
+        strategy_type: Optional specific strategy type to run
+        market_data_path: Optional path to market data CSV
+        timeout: Execution timeout in seconds
+        correlation_id: Optional correlation ID for tracing
+        
+    Returns:
+        Dictionary with execution results and metrics
+    """
     import asyncio
     import pandas as pd
     from datetime import datetime, timedelta
@@ -163,12 +157,10 @@ async def run_ai_strategies(
     
     try:
         # Initialize AI components
-        from .metrics_collector import MetricsCollector
-        
         registry = AIStrategyRegistry()
         storage = AIStrategyStorage()
-        metrics = MetricsCollector()
-        executor = AIStrategyExecutor(registry, rm, metrics, storage)
+        metrics = AIStrategyMetrics(storage)
+        executor = AIStrategyExecutor(registry, storage, metrics)
         
         # Load or generate market data
         if market_data_path and market_data_path.exists():
@@ -234,6 +226,7 @@ async def run_ai_strategies(
                 metrics.record_signal(
                     strategy_name=result.strategy_name,
                     signal=result.signal.dict(),
+                    execution_time=result.execution_time_ms,
                     correlation_id=cid,
                 )
         

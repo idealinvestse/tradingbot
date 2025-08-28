@@ -9,7 +9,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from app.data_services.models import NewsArticle
+    from app.strategies.ai_registry import AIStrategyType
+from app.strategies.utils import get_json_logger
+
+logger = get_json_logger("sqlite_storage")
 
 
 # Core schema (registry)
@@ -175,6 +178,74 @@ EXTENDED_SCHEMA: dict[str, str] = {
             sentiment_score REAL,
             sentiment_label TEXT,
             fetched_utc TEXT NOT NULL
+        )
+        """
+    ),
+    "ai_signals": (
+        """
+        CREATE TABLE IF NOT EXISTS ai_signals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            strategy_name TEXT NOT NULL,
+            strategy_type TEXT NOT NULL,
+            symbol TEXT NOT NULL,
+            action TEXT NOT NULL,
+            confidence REAL NOT NULL,
+            suggested_size REAL,
+            entry_price REAL,
+            stop_loss REAL,
+            take_profit REAL,
+            rationale TEXT,
+            metadata TEXT,
+            correlation_id TEXT,
+            timestamp TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    ),
+    "ai_metrics": (
+        """
+        CREATE TABLE IF NOT EXISTS ai_metrics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            strategy_name TEXT NOT NULL,
+            strategy_type TEXT NOT NULL,
+            total_signals INTEGER DEFAULT 0,
+            successful_signals INTEGER DEFAULT 0,
+            failed_signals INTEGER DEFAULT 0,
+            avg_confidence REAL DEFAULT 0.0,
+            total_return REAL DEFAULT 0.0,
+            avg_return REAL DEFAULT 0.0,
+            sharpe_ratio REAL DEFAULT 0.0,
+            max_drawdown REAL DEFAULT 0.0,
+            win_rate REAL DEFAULT 0.0,
+            profit_factor REAL DEFAULT 0.0,
+            model_accuracy REAL DEFAULT 0.0,
+            specific_metrics TEXT,
+            last_signal_time TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(strategy_name)
+        )
+        """
+    ),
+    "ai_trades": (
+        """
+        CREATE TABLE IF NOT EXISTS ai_trades (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            strategy_name TEXT NOT NULL,
+            strategy_type TEXT NOT NULL,
+            symbol TEXT NOT NULL,
+            side TEXT NOT NULL,
+            entry_price REAL,
+            exit_price REAL,
+            quantity REAL,
+            pnl REAL,
+            pnl_percent REAL,
+            fees REAL,
+            success BOOLEAN,
+            trade_data TEXT,
+            correlation_id TEXT,
+            opened_at TEXT,
+            closed_at TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
         """
     ),
