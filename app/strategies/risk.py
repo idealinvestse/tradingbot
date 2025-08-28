@@ -304,22 +304,30 @@ class RiskManager:
         rd = self._running_dir()
         ttl = max(1, int(self.cfg.concurrency_ttl_sec))
         now_s = time.time()
-        count = 0
+        active_locks = 0
+
         for p in rd.glob(f"{kind}_*.lock"):
             try:
                 age = now_s - p.stat().st_mtime
-            except Exception:
+            except FileNotFoundError:
+                # File was deleted between glob and stat, not active
                 continue
-            if age <= ttl:
-                count += 1
-            else:
-                # Clean up stale
+            except Exception as e:
+                logger.warning(f"Could not process lock file {p.name}: {e}")
+                continue  # Potentially corrupted, do not count as active
+
+            if age > ttl:
+                # Stale lock found, attempt to clean up and skip.
                 logger.debug("stale_lock_cleanup", extra={"lock_file": str(p), "age_sec": age, "ttl_sec": ttl})
                 try:
                     p.unlink()
-                except Exception as e:
-                    logger.warning("stale_lock_cleanup_failed", extra={"lock_file": str(p), "error": str(e)})
-        return count
+                except OSError as e:
+                    logger.error(f"Failed to remove stale lock {p.name}: {e}")
+                continue  # Go to next file, do not count this stale lock.
+
+            # If we reach here, the lock is not stale and is considered active.
+            active_locks += 1
+        return active_locks
 
     def _circuit_breaker_active(self, *, correlation_id: str | None = None) -> tuple[bool, str | None]:
         logger = get_json_logger(

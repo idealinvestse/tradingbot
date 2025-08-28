@@ -7,4 +7,7 @@ TA-Lib>=0.4.28
 
 # Additional dependencies for our modules
 pydantic>=2.0.0
+pytest-mock
+pytest-cov
+freezegun>=1.0.0
 python-dotenv>=1.0.0
