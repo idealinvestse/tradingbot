@@ -6,12 +6,27 @@ Denna roadmap fokuserar på en säker och reproducerbar väg till produktionsdug
 - `scripts/strategy_cli.py` (+ registry-skript)
 - Artefakter i `user_data/backtest_results/` och `user_data/hyperopt_results/`
 
-## Status (2025-08-25)
-- Precision: `Decimal` med 8 decimalers kvantisering integrerad i `app/strategies/metrics.py` (inkl. `_upsert_metric`) och `reporting.py`; rapporter formaterar pengar till 8 dp.
-- Validering & tester: Pydantic-modeller för backtest/hyperopt stärkt; regressionstester för parsning och rapportering (`tests/test_hyperopt_metrics.py`, `tests/test_metrics.py`, `tests/test_reporting.py`).
-- Risk: `RiskManager` utökad med circuit breaker, samtidighets‑locks, drawdown‑guardrails och live‑begränsningar; ny `log_incident()` persisterar till `incidents` i SQLite; täckande tester; CLI `scripts/circuit_breaker.py`.
-- CI: GitHub Actions `.github/workflows/ci.yml` med `pytest`, `ruff`, `black --check`, `mypy`, `safety`; grönt lokalt.
-- Docs: `docs/RUNBOOK.md` uppdaterad med incidentloggning och CI; `README.md` kompletterad med CI/precision.
+## Status (2025-08-29)
+
+### ✅ Implementerat (Konsolideringsfas)
+- **Precision**: `Decimal` med 8 decimalers kvantisering integrerad i `app/strategies/metrics.py` och `reporting.py`
+- **Validering**: Pydantic-modeller för backtest/hyperopt; regressionstester implementerade
+- **Risk Management**: `RiskManager` med circuit breaker, concurrency locks, drawdown guardrails och live limits
+- **Incidentloggning**: `log_incident()` persisterar till SQLite `incidents`-tabell med strukturerad JSON-loggning
+- **CI/CD**: GitHub Actions med `pytest`, `ruff`, `black`, `mypy`, `safety` - alla steg gröna
+- **CLI-verktyg**: `scripts/strategy_cli.py` för indexering, rapportgenerering och dokumentation
+- **Backup/Restore**: `scripts/backup_restore.py` för disaster recovery
+- **Dokumentation**: Omfattande uppdatering av alla docs med aktuell information
+
+### 🔄 Pågående
+- **Observability**: JSON-loggning med korrelations-ID implementerat, metrics under utveckling
+- **Automatisering**: CLI-integration för kontinuerlig rapportgenerering
+- **Testning**: Utökad testsuite med property-based testing
+
+### 📋 Nästa steg
+- **Prometheus-integration**: Metrics export för Grafana dashboards
+- **Live trading**: Production-ready deployment med full observability
+- **AI-strategier**: Utökad ML-pipeline med feature engineering
 
 ## Nästa 5 steg (kärnkategorier)
 

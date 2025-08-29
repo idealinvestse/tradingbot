@@ -1,6 +1,9 @@
 # Resultat – senaste körningar
 
-Genererad (UTC): 2025-08-16T19:00:14Z
+Genererad (UTC): 2025-08-29T15:33:09Z
+
+> **Status**: Denna rapport genereras automatiskt från SQLite-databasen via `scripts/strategy_cli.py report-results`. 
+> För aktuella resultat, kör: `py -3 scripts/strategy_cli.py index-backtests && py -3 scripts/strategy_cli.py report-results`
 
 | Run ID | Status | Start | Slut | Typ | profit_total | profit_total_abs | sharpe | sortino | max_dd_abs | winrate | loss | trades |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -52,18 +55,42 @@ Två nya kolumner har lagts till i rapporten för bättre spårbarhet och reprod
 
 ## Generera rapport via CLI
 
-Använd följande CLI för att skriva den senaste resultatrapporten till `user_data/backtest_results/RESULTS.md`:
+### Rekommenderad metod (Strategy CLI)
 
-```bash
+```powershell
+# Indexera alla resultat först
+py -3 scripts/strategy_cli.py index-backtests --dir user_data/backtest_results
+py -3 scripts/strategy_cli.py index-hyperopts --dir user_data/hyperopt_results
+
+# Generera rapport
+py -3 scripts/strategy_cli.py report-results --db user_data/registry/strategies_registry.sqlite --out docs/RESULTS.md
+```
+
+### Alternativ metod (Legacy)
+
+```powershell
 python -m scripts.render_results_report \
   --db user_data/backtest_results/index.db \
   --out user_data/backtest_results/RESULTS.md \
   --limit 50
 ```
 
-- `--db` pekar på SQLite‑databasen som byggts av indexeringsstegen.
-- `--out` anger sökvägen för Markdown‑rapporten.
-- `--limit` begränsar antal rader i rapporten.
+### Parametrar
+
+- `--db` - SQLite-databas (standard: `user_data/registry/strategies_registry.sqlite`)
+- `--out` - Utdatafil för Markdown-rapport
+- `--limit` - Begränsar antal rader i rapporten (standard: 50)
 
 Rapporten inkluderar automatiskt kolumnerna Data Window och Config Hash om dessa finns i databasen.
 
+## Automatisering
+
+För kontinuerlig uppdatering, lägg till i CI/CD-pipeline:
+
+```yaml
+- name: Update Results Report
+  run: |
+    py -3 scripts/strategy_cli.py index-backtests
+    py -3 scripts/strategy_cli.py index-hyperopts  
+    py -3 scripts/strategy_cli.py report-results
+```

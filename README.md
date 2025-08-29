@@ -1,22 +1,66 @@
 # Tradingbot – Freqtrade-baserad
 
-Detta repo innehåller en Freqtrade-baserad krypto-tradingbot med ett stort fokus på säkerhet, reproducerbarhet och tydlig struktur. Dokumentationen är avsedd både för icke-tekniska läsare (för att förstå syfte, risker och hur man kör i testläge) och tekniska användare (för att bygga, testa och köra strategier i Docker).
+Detta repo innehåller en Freqtrade-baserad krypto-tradingbot med ett stort fokus på säkerhet, reproducerbarhet och tydlig struktur. Projektet är i **konsolideringsfas** med fokus på produktionsduglig grund, säkerhet och observability.
 
-Kortfattat:
-- Kör paper trading (simulerad handel) som standard via Docker Compose.
-- Bygg och testa strategier med backtesting och hyperopt.
-- Gå till live först när backtester är stabila och risker är kända.
+## Översikt
+
+**För icke-tekniska användare:**
+
+- Säker testmiljö med paper trading (simulerad handel) som standard
+- Automatisk riskhantering med circuit breaker och guardrails
+- Tydlig dokumentation och spårbarhet av alla resultat
+
+**För tekniska användare:**
+
+- Strukturerad JSON-loggning med korrelations-ID
+- Decimal-precision för monetära värden
+- Omfattande testsuite med CI/CD-pipeline
+- Modulär arkitektur med separerad strategihantering
+
+**Kortfattat:**
+
+- Kör paper trading (simulerad handel) som standard via Docker Compose
+- Bygg och testa strategier med backtesting och hyperopt
+- Robust riskhantering och incidentloggning
+- Gå till live först när backtester är stabila och risker är kända
 
 ## Förkrav
-- Docker Desktop (Windows)
-- Git
+- **Docker Desktop** (Windows) - för containeriserad körning
+- **Git** - för versionshantering
+- **Python 3.10+** - för utveckling och skript
+- **PowerShell** - rekommenderat för Windows-kommandon
 
 ## Setup
-1. Kopiera `.env.example` till `.env`.
-   - För paper/backtest kan API-nycklar vara tomma.
-   - För live krävs riktiga nycklar. Lagra aldrig hemligheter i repo.
-2. Granska `user_data/configs/config.testnet.json` (par, timeframe, riskparametrar) och justera vid behov.
-3. Bekräfta att `docker-compose.yml` pekar på testnet-konfig och `--dry-run` (paper).
+
+### 1. Miljövariabler
+Kopiera `.env.example` till `.env`:
+```bash
+cp .env.example .env
+```
+- **Paper/backtest**: API-nycklar kan vara tomma
+- **Live**: Krävs riktiga nycklar. **Lagra aldrig hemligheter i repo**
+
+### 2. Konfiguration
+Granska och justera konfigurationsfiler:
+- `user_data/configs/config.testnet.json` - testnet/paper trading
+- `user_data/configs/config.mainnet.json` - live trading (använd försiktigt)
+- `user_data/configs/config.bt.json` - backtesting
+
+### 3. Docker Compose
+Bekräfta att `docker-compose.yml` pekar på testnet-konfig och `--dry-run` (paper mode).
+
+### 4. Katalogstruktur
+Projektet skapar automatiskt nödvändiga kataloger:
+```
+user_data/
+├── strategies/          # Freqtrade strategier
+├── configs/            # Konfigurationsfiler
+├── backtest_results/   # Backtest-artefakter
+├── hyperopt_results/   # Hyperopt-artefakter
+├── registry/           # SQLite-databaser
+├── state/              # Risk manager tillstånd
+└── logs/               # Loggfiler
+```
 
 ## Kommandon (Docker Compose)
 - Dra image:
@@ -53,11 +97,43 @@ Kortfattat:
 - Transparens: Backtester genererar rapporter under `user_data/backtest_results/` som kan delas och reproduceras.
 
 ## Arkitektur (teknisk översikt)
-- Docker Compose kör en container av `freqtradeorg/freqtrade:stable` enligt `docker-compose.yml`.
-- Volym: `./user_data` monteras till `/freqtrade/user_data` i containern.
-- Standardkommando: `trade -c ...config.testnet.json --dry-run` för paper trading.
-- Strategier ligger i `user_data/strategies/` (ex. `ma_crossover_strategy.py`, `mean_reversion_bb.py`).
-- Konfigfiler i `user_data/configs/` (testnet/mainnet/backtest).
+
+### Container-arkitektur
+- **Docker Compose** kör `freqtradeorg/freqtrade:stable`
+- **Volym**: `./user_data` monteras till `/freqtrade/user_data`
+- **Standardkommando**: `trade -c config.testnet.json --dry-run` (paper trading)
+
+### Modulstruktur
+```
+app/
+├── strategies/         # Strategihantering och risk
+│   ├── risk.py        # RiskManager med circuit breaker
+│   ├── metrics.py     # Resultatindexering
+│   ├── reporting.py   # Rapportgenerering
+│   ├── runner.py      # Körningsorkestrering
+│   └── persistence/   # SQLite-hantering
+├── adapters/          # Externa API-adapters
+├── data_services/     # Datahantering
+└── reasoning/         # AI/ML-modeller
+
+scripts/
+├── strategy_cli.py    # Huvudsakligt CLI-verktyg
+├── circuit_breaker.py # Circuit breaker-hantering
+├── backup_restore.py  # Backup/restore-funktioner
+└── dca_scheduler.py   # DCA-planering
+
+user_data/
+├── strategies/        # Freqtrade-strategier
+├── configs/          # Konfigurationsfiler
+└── [resultat/logs]   # Artefakter och loggar
+```
+
+### Dataflöde
+1. **Strategier** definieras i `user_data/strategies/`
+2. **Körning** via Docker Compose eller CLI-skript
+3. **Resultat** indexeras automatiskt till SQLite
+4. **Rapporter** genereras från databas
+5. **Risk** övervakas kontinuerligt med guardrails
 
 ## Konsolideringsfas (mot produktion)
 Det pågår en konsolidering för att höja produktsäkerhet och spårbarhet:
@@ -85,10 +161,20 @@ Det pågår en konsolidering för att höja produktsäkerhet och spårbarhet:
 - Plot/rapporter (om aktiverat): `user_data/plot/` och `user_data/reports/`.
 
 ## Vanliga justeringar
-- Ändra timeframe/par i `config.*.json` (ex. `timeframe: "5m"`, `pair_whitelist`).
-- Finjustera risk i strategi (t.ex. `minimal_roi`, `stoploss`, trailing stop) samt hyperoptbara parametrar.
-- Aktivera Telegram i konfig för notifieringar (`telegram.enabled=true`).
-- Byt strategi via konfig (`"strategy": "MaCrossoverStrategy"`).
+
+### Handelsparametrar
+- **Timeframe/par**: Ändra i `config.*.json` (ex. `"timeframe": "5m"`, `"pair_whitelist"`)
+- **Risk**: Justera `minimal_roi`, `stoploss`, trailing stop i strategier
+- **Strategi**: Byt via konfig (`"strategy": "MaCrossoverStrategy"`)
+
+### Notifieringar
+- **Telegram**: Aktivera i konfig (`"telegram": {"enabled": true}`)
+- **Webhook**: Konfigurera för externa system
+
+### Riskhantering
+- **Circuit Breaker**: `py -3 scripts/circuit_breaker.py enable --reason "maintenance"`
+- **Miljövariabler**: Se [Miljövariabler](#miljövariabler) för fullständig lista
+- **Guardrails**: Konfigurera via `RISK_*` environment variables
 
 ## Säkerhet
 - Använd testnet/paper tills backtest/paper är stabilt.
@@ -122,11 +208,71 @@ Det pågår en konsolidering för att höja produktsäkerhet och spårbarhet:
 - Återställ: `py -3 scripts/backup_restore.py restore <sökväg_till_backup>`
 - Arkiverar/återställer: `user_data/backtest_results/`, `user_data/hyperopt_results/`, `user_data/registry/*.sqlite`, (valfritt) `user_data/logs/`.
 
-## Träd
+## Miljövariabler
+
+### Risk Management
+```bash
+# Circuit Breaker
+RISK_CIRCUIT_BREAKER_FILE=user_data/state/circuit_breaker.json
+RISK_ALLOW_WHEN_CB=0  # 1 för att tillåta körning trots CB
+
+# Concurrency
+RISK_MAX_CONCURRENT_BACKTESTS=2
+RISK_CONCURRENCY_TTL_SEC=900
+
+# Drawdown Protection
+RISK_MAX_BACKTEST_DRAWDOWN_PCT=0.20  # 20%
+
+# Live Trading Limits
+RISK_LIVE_MAX_CONCURRENT_TRADES=5
+RISK_LIVE_MAX_PER_MARKET_EXPOSURE_PCT=0.25  # 25%
+
+# Database
+RISK_DB_PATH=user_data/registry/strategies_registry.sqlite
+RISK_STATE_DIR=user_data/state
 ```
-user_data/
-  strategies/
-  configs/
-  data/
-  logs/
-  reports/
+
+### Logging
+```bash
+# Strukturerad JSON-loggning aktiveras automatiskt
+# Korrelations-ID propageras genom alla operationer
+```
+
+## CLI-verktyg
+
+### Strategy CLI (Huvudverktyg)
+```powershell
+# Generera dokumentation
+py -3 scripts/strategy_cli.py docs
+
+# Indexera resultat
+py -3 scripts/strategy_cli.py index-backtests
+py -3 scripts/strategy_cli.py index-hyperopts
+
+# Generera rapport
+py -3 scripts/strategy_cli.py report-results
+
+# Exportera register till SQLite
+py -3 scripts/strategy_cli.py export-db
+```
+
+### Circuit Breaker
+```powershell
+# Status
+py -3 scripts/circuit_breaker.py status
+
+# Aktivera (60 minuter)
+py -3 scripts/circuit_breaker.py enable --reason "incident-123" --minutes 60
+
+# Avaktivera
+py -3 scripts/circuit_breaker.py disable
+```
+
+### Backup/Restore
+```powershell
+# Skapa backup
+py -3 scripts/backup_restore.py backup --logs
+
+# Återställ
+py -3 scripts/backup_restore.py restore user_data\backups\backup_20250829_173000
+```
