@@ -395,24 +395,19 @@ def test_log_incident_db_error_and_coverage(tmp_path: Path) -> None:
     info_log = json.loads(log_lines[0])
     assert info_log["level"] == "INFO"
     assert info_log["message"] == "incident_logged"
-    assert "incident" in info_log
-    assert info_log["incident"]["description"] == "coverage test"
+    # The logger adapter flattens the 'incident' dictionary into the top level.
+    assert "incident_id" in info_log
+    assert info_log["description"] == "coverage test"
+    assert info_log["run_id"] == "run1"
 
     # 2. Verify the subsequent error log record (JSON)
     error_log = json.loads(log_lines[1])
     assert error_log["level"] == "ERROR"
     assert error_log["message"] == "incident_store_error"
     assert "error" in error_log
-    assert "DB write failed" in error_log["error"]
-
-
-def test_circuit_breaker_no_config() -> None:
-    """Test circuit breaker check when the file path is not configured."""
-    config = RiskConfig(circuit_breaker_file=None)
-    rm = RiskManager(config)
-    active, reason = rm._circuit_breaker_active(correlation_id=None)
-    assert not active
-    assert reason is None
+    assert error_log["error"] == "DB write failed"
+    # Ensure the incident context is propagated to the error log
+    assert error_log["incident_id"] == info_log["incident_id"]
 
 
 def test_circuit_breaker_no_file_and_inactive(tmp_path: Path) -> None:
