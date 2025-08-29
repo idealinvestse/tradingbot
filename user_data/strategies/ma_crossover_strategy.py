@@ -19,6 +19,10 @@ class MaCrossoverStrategy(IStrategy):
     Justera parametrar via hyperopt eller direkt i koden.
     """
 
+    def __init__(self, config: dict | None = None) -> None:
+        # Allow tests to instantiate without passing a config
+        super().__init__(config or {})
+
     # Grundinställningar
     timeframe: str = "5m"
     startup_candle_count: int = 200
@@ -140,7 +144,18 @@ class MaCrossoverStrategy(IStrategy):
                             logger.warning("ticker_missing", extra={"reason": "empty_or_no_pair"})
                     except Exception as e:  # noqa: BLE001
                         df["last_price"] = 0
-                        logger.error("dp_ticker_error", extra={"error": str(e)})
+                        # Recreate logger to embed error as static field to guarantee presence in JSON
+                        err_logger = get_json_logger(
+                            "strategy",
+                            static_fields={
+                                "strategy": self.__class__.__name__,
+                                "timeframe": self.timeframe,
+                                "pair": (metadata or {}).get("pair"),
+                                "runmode": rm,
+                                "error": str(e),
+                            },
+                        )
+                        err_logger.error("dp_ticker_error")
         except Exception:
             # Logging skall aldrig orsaka krasch
             pass
