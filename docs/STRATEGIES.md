@@ -20,6 +20,7 @@ Senast uppdaterad (UTC): 2025-08-29T15:33:09Z
 | template | Template Strategy | TemplateStrategy | user_data/strategies/_template_strategy.py | template | - | - | - | - |
 
 ### Strategistatus
+
 - **active**: Produktionsklar, testad i backtest och paper
 - **draft**: Under utveckling, grundläggande funktionalitet implementerad
 - **experimental**: Experimentell, använd med försiktighet

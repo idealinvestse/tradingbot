@@ -91,6 +91,7 @@ För kontinuerlig uppdatering, lägg till i CI/CD-pipeline:
 - name: Update Results Report
   run: |
     py -3 scripts/strategy_cli.py index-backtests
+    py -3 scripts/strategy_cli.py index-hyperopts
     py -3 scripts/strategy_cli.py index-hyperopts  
     py -3 scripts/strategy_cli.py report-results
 ```

@@ -25,6 +25,7 @@ Detta repo innehåller en Freqtrade-baserad krypto-tradingbot med ett stort foku
 - Gå till live först när backtester är stabila och risker är kända
 
 ## Förkrav
+
 - **Docker Desktop** (Windows) - för containeriserad körning
 - **Git** - för versionshantering
 - **Python 3.10+** - för utveckling och skript
@@ -63,6 +64,7 @@ user_data/
 ```
 
 ## Kommandon (Docker Compose)
+
 - Dra image:
   ```bash
   docker compose pull
@@ -91,6 +93,7 @@ user_data/
   ```
 
 ## Överblick (icke-teknisk)
+
 - Syfte: Bygga och testa automatiska handelsstrategier i en säker testmiljö (paper) innan eventuell live-handel.
 - Risk: Kryptohandel har hög risk. Förluster kan överstiga insättning vid felaktig hävstång/derivat (används ej här). Kör alltid i testläge först.
 - Säkerhet: Inga hemligheter i repo. `.env` hanterar nycklar lokalt. Live kräver separat mainnet-konfiguration.
@@ -99,6 +102,7 @@ user_data/
 ## Arkitektur (teknisk översikt)
 
 ### Container-arkitektur
+
 - **Docker Compose** kör `freqtradeorg/freqtrade:stable`
 - **Volym**: `./user_data` monteras till `/freqtrade/user_data`
 - **Standardkommando**: `trade -c config.testnet.json --dry-run` (paper trading)
@@ -129,6 +133,7 @@ user_data/
 ```
 
 ### Dataflöde
+
 1. **Strategier** definieras i `user_data/strategies/`
 2. **Körning** via Docker Compose eller CLI-skript
 3. **Resultat** indexeras automatiskt till SQLite
@@ -136,6 +141,7 @@ user_data/
 5. **Risk** övervakas kontinuerligt med guardrails
 
 ## Konsolideringsfas (mot produktion)
+
 Det pågår en konsolidering för att höja produktsäkerhet och spårbarhet:
 - Strukturerad JSON-loggning med korrelations-ID i `app/strategies/` (runner, metrics, reporting).
 - Pydantic-validering av artefakter (backtest/hyperopt) vid indexering.
@@ -145,16 +151,19 @@ Det pågår en konsolidering för att höja produktsäkerhet och spårbarhet:
 - Default: testnet/paper; inga hemligheter i repo.
 
 ## CI och kvalitetsgrindar
+
 - GitHub Actions workflow: `.github/workflows/ci.yml`
 - Kör: `pytest`, `ruff`, `black --check`, `mypy app/`, `safety check`
 - Krav: alla steg måste passera innan merge till `main`.
 
 ## Precision & incidentloggning
+
 - Monetära värden hanteras med `decimal.Decimal` och kvantiseras till 8 decimaler i `app/strategies/metrics.py` och `reporting.py`.
 - Rapporter visar monetära värden med 8 decimalers precision (se `tests/test_reporting.py`).
 - Riskincidenter loggas via `RiskManager.log_incident()` till SQLite‑tabellen `incidents` och till strukturerad JSON‑logg.
 
 ## Var hamnar resultat?
+
 - Backtest: `user_data/backtest_results/` (JSON och ZIP-rapporter, t.ex. `.meta.json`, `.zip`).
 - Hyperopt: `user_data/hyperopt_results/` (fthypt-filer).
 - Loggar: `user_data/logs/freqtrade.log` (konfigureras i `docker-compose.yml`).
@@ -177,18 +186,21 @@ Det pågår en konsolidering för att höja produktsäkerhet och spårbarhet:
 - **Guardrails**: Konfigurera via `RISK_*` environment variables
 
 ## Säkerhet
+
 - Använd testnet/paper tills backtest/paper är stabilt.
 - Lagra aldrig hemligheter i repo. Använd `.env` lokalt och CI-secrets i pipelines.
 - Sätt begränsningar: `max_open_trades`, protections (`MaxDrawdown`, `StoplossGuard`) i konfig.
 - Kör med låga belopp initialt i live, och övervaka loggar/telegram-notiser.
 
 ## Felsökning (snabbguide)
+
 - Containern startar inte: Kontrollera Docker Desktop, och att port/volym inte är låst.
 - Får inte igenom order i paper: Se `freqtrade.log` och bekräfta att `--dry-run` är aktivt samt par finns i `pair_whitelist`.
 - Backtest saknar data: Ladda ner historik via Freqtrade-kommandon eller kör om med annan period.
 - Strategi importfel: Stava klassnamn korrekt i konfig (ex. `"MaCrossoverStrategy"`).
 
 ## FAQ
+
 - Behöver jag API-nycklar för paper/backtest?
  - Nej. Lämna dem tomma i `.env` för test/paper. Krävs endast för live.
 - Kan jag köra utan Docker?
@@ -197,6 +209,7 @@ Det pågår en konsolidering för att höja produktsäkerhet och spårbarhet:
  - I konfig (`protections`) samt i strategi (ROI/stoploss/trailing). Se `user_data/configs/config.*.json` och `user_data/strategies/*.py`.
 
 ## Vidare läsning
+
 - Riktlinjer och utvecklingsstandard: `docs/CODE_GUIDELINES.md`
 - Operativ körning & incidenter: `docs/RUNBOOK.md`
 - Roadmap och konsolideringsplan: `docs/ROADMAP.md`
@@ -204,6 +217,7 @@ Det pågår en konsolidering för att höja produktsäkerhet och spårbarhet:
 - Script och verktyg: `scripts/README.md`
 
 ### Backup/Restore (artefakter och SQLite‑register)
+
 - Skapa backup: `py -3 scripts/backup_restore.py backup`
 - Återställ: `py -3 scripts/backup_restore.py restore <sökväg_till_backup>`
 - Arkiverar/återställer: `user_data/backtest_results/`, `user_data/hyperopt_results/`, `user_data/registry/*.sqlite`, (valfritt) `user_data/logs/`.
@@ -211,6 +225,7 @@ Det pågår en konsolidering för att höja produktsäkerhet och spårbarhet:
 ## Miljövariabler
 
 ### Risk Management
+
 ```bash
 # Circuit Breaker
 RISK_CIRCUIT_BREAKER_FILE=user_data/state/circuit_breaker.json
@@ -233,6 +248,7 @@ RISK_STATE_DIR=user_data/state
 ```
 
 ### Logging
+
 ```bash
 # Strukturerad JSON-loggning aktiveras automatiskt
 # Korrelations-ID propageras genom alla operationer
@@ -241,6 +257,7 @@ RISK_STATE_DIR=user_data/state
 ## CLI-verktyg
 
 ### Strategy CLI (Huvudverktyg)
+
 ```powershell
 # Generera dokumentation
 py -3 scripts/strategy_cli.py docs
@@ -257,6 +274,7 @@ py -3 scripts/strategy_cli.py export-db
 ```
 
 ### Circuit Breaker
+
 ```powershell
 # Status
 py -3 scripts/circuit_breaker.py status
@@ -269,6 +287,7 @@ py -3 scripts/circuit_breaker.py disable
 ```
 
 ### Backup/Restore
+
 ```powershell
 # Skapa backup
 py -3 scripts/backup_restore.py backup --logs

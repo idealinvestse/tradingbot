@@ -9,6 +9,7 @@ Tradingbot-projektet är strukturerat som en modulär applikation med tydlig sep
 ## Huvudkomponenter
 
 ### Container-arkitektur
+
 ```
 Docker Compose
 ├── freqtradeorg/freqtrade:stable (huvudcontainer)
@@ -19,7 +20,8 @@ Docker Compose
 ### Modulstruktur
 
 #### app/ - Kärnlogik
-```
+
+```markdown
 app/
 ├── strategies/         # Strategihantering och risk
 │   ├── risk.py        # RiskManager med circuit breaker
@@ -54,7 +56,8 @@ app/
 └── optimization/     # Optimeringsalgoritmer
 ```
 
-#### scripts/ - CLI-verktyg
+#### scripts/ - CLI-verktytg
+
 ```
 scripts/
 ├── strategy_cli.py    # Huvudsakligt CLI-verktyg
@@ -66,6 +69,7 @@ scripts/
 ```
 
 #### user_data/ - Freqtrade-data
+
 ```
 user_data/
 ├── strategies/        # Freqtrade-strategier (.py)
@@ -81,6 +85,7 @@ user_data/
 ## Dataflöde
 
 ### 1. Strategiutveckling
+
 ```
 Utvecklare → user_data/strategies/ → Freqtrade-klasser
     ↓
@@ -90,6 +95,7 @@ scripts/strategy_cli.py docs → docs/STRATEGIES.md
 ```
 
 ### 2. Backtesting
+
 ```
 Docker Compose → Freqtrade backtest → user_data/backtest_results/
     ↓
@@ -99,6 +105,7 @@ scripts/strategy_cli.py report-results → docs/RESULTS.md
 ```
 
 ### 3. Risk Management
+
 ```
 app/strategies/risk.py → RiskManager
     ├── Circuit Breaker → user_data/state/circuit_breaker.json
@@ -108,6 +115,7 @@ app/strategies/risk.py → RiskManager
 ```
 
 ### 4. Observability
+
 ```
 app/strategies/logging_utils.py → Strukturerad JSON-loggning
     ├── Korrelations-ID → Propageras genom alla operationer
@@ -136,6 +144,7 @@ app/strategies/logging_utils.py → Strukturerad JSON-loggning
 ## Observability-arkitektur
 
 ### Loggning
+
 ```
 JSON-strukturerad loggning
 ├── Korrelations-ID (propageras)
@@ -145,6 +154,7 @@ JSON-strukturerad loggning
 ```
 
 ### Metrics
+
 ```
 app/strategies/metrics.py
 ├── Backtest-parsning → SQLite
@@ -154,6 +164,7 @@ app/strategies/metrics.py
 ```
 
 ### Rapportering
+
 ```
 app/strategies/reporting.py
 ├── Markdown-generering
@@ -165,6 +176,7 @@ app/strategies/reporting.py
 ## Databas-arkitektur
 
 ### SQLite-schema
+
 ```sql
 -- Strategiregister
 strategies, methods, concepts, sources
@@ -184,6 +196,7 @@ ideas, experiments, decisions
 ## CI/CD-arkitektur
 
 ### GitHub Actions Pipeline
+
 ```yaml
 .github/workflows/ci.yml
 ├── Python 3.10 & 3.11 testing
@@ -203,6 +216,7 @@ ideas, experiments, decisions
 ## Deployment-arkitektur
 
 ### Lokal utveckling
+
 ```
 Windows + Docker Desktop
 ├── PowerShell för CLI-kommandon
@@ -211,6 +225,7 @@ Windows + Docker Desktop
 ```
 
 ### Produktionsmiljö (planerad)
+
 ```
 Ubuntu Server
 ├── AMD ROCm GPU-stöd

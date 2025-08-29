@@ -66,6 +66,7 @@ Denna roadmap fokuserar på en säker och reproducerbar väg till produktionsdug
 5) README‑badge för CI‑status.
 
 ## Lane 1 — Arkitektur & Orkestrering (Runtime)
+
 - Mål: Enhetligt, idempotent körnav för backtest/hyperopt/paper/live med tydliga kontrakt och loggning.
 - Ägare: Runtime Maintainer (backup: Windsurf-agent). Beroenden: Observability, Risk.
 - Steg (5):
@@ -81,6 +82,7 @@ Denna roadmap fokuserar på en säker och reproducerbar väg till produktionsdug
      - Deliverable: Dokumenterade kommandon i `docs/`.
 
 ## Lane 2 — Observability & Loggning
+
 - Mål: Full spårbarhet (JSON-loggar, correlation-id) och basala mätvärden (Prometheus-stil).
 - Ägare: Observability Maintainer. Beroenden: Runtime, Reporting.
 - Steg (5):
@@ -91,6 +93,7 @@ Denna roadmap fokuserar på en säker och reproducerbar väg till produktionsdug
   5) Dashboard-baskort (specifikation) för Grafana; endpoints redo att skördas.
 
 ## Lane 3 — Risk & Orderpolicy
+
 - Mål: Guardrails före alla affärer och robust incidenthantering.
 - Ägare: Risk Maintainer. Beroenden: Runtime, Observability.
 - Steg (5):
@@ -101,6 +104,7 @@ Denna roadmap fokuserar på en säker och reproducerbar väg till produktionsdug
   5) Post-trade audit: slippage/avvikelse loggas och exponeras som metrics.
 
 ## Lane 4 — Data & Reproducerbarhet
+
 - Mål: Validerade artefakter och deterministiska regressionskörningar.
 - Ägare: Data Maintainer. Beroenden: Metrics/Reporting, Persistence.
 - Steg (5):
@@ -111,6 +115,7 @@ Denna roadmap fokuserar på en säker och reproducerbar väg till produktionsdug
   5) CLI-indexering i `strategy_cli.py` för artefakter med dubblettskydd (checksum).
 
 ## Lane 5 — Test & Kvalitet
+
 - Mål: Hög täckning och regressionstrygghet.
 - Ägare: QA Maintainer. Beroenden: Data & Runtime.
 - Steg (5):
@@ -121,6 +126,7 @@ Denna roadmap fokuserar på en säker och reproducerbar väg till produktionsdug
   5) Stabil testdata/fixtures med versionerade dataset.
 
 ## Lane 6 — CI/CD & Supply Chain
+
 - Mål: Automatiska grindar och säker beroendehantering.
 - Ägare: CI Maintainer. Beroenden: Test, Guidelines.
 - Steg (5):
@@ -131,6 +137,7 @@ Denna roadmap fokuserar på en säker och reproducerbar väg till produktionsdug
   5) Release-taggar (semver) + changelog generering; runbook-spårning.
 
 ## Lane 7 — Infrastruktur & Drift (Windows → Container)
+
 - Mål: Härdad containerisering och återställbarhet.
 - Ägare: Infra Maintainer. Beroenden: Observability, CI.
 - Steg (5):
@@ -141,6 +148,7 @@ Denna roadmap fokuserar på en säker och reproducerbar väg till produktionsdug
   5) Prometheus-/Grafana-förberedelser: definiera endpoints/logg-konsumenter.
 
 ## Lane 8 — Strategi R&D & Portfölj
+
 - Mål: Säker innovation ovanpå stabil bas.
 - Ägare: Research Maintainer. Beroenden: Runner, Data, Test.
 - Steg (5):
@@ -151,6 +159,7 @@ Denna roadmap fokuserar på en säker och reproducerbar väg till produktionsdug
   5) Senare: portföljprinciper (risk-paritet, korrelationsgränser) och portfölj-metrics.
 
 ## Lane 9 — Developer Experience (DX)
+
 - Mål: Hög utvecklarhastighet utan att sänka kvalitet.
 - Ägare: DX Maintainer. Beroenden: Guidelines, CI.
 - Steg (5):
