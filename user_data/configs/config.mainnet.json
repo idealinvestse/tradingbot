@@ -21,6 +21,12 @@
     "use_order_book": true,
     "order_book_top": 2
   },
+  "unfilledtimeout": {
+    "entry": 10,
+    "exit": 10,
+    "unit": "minutes",
+    "cancel_on_timeout": true
+  },
   "pair_whitelist": ["BTC/USDT", "ETH/USDT"],
   "pair_blacklist": [],
   "pairlists": [

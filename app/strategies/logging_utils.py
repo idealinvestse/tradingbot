@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timezone
+import os
 from pathlib import Path
 from typing import Any
 
@@ -51,6 +52,10 @@ def get_json_logger(
 ) -> logging.LoggerAdapter:
     """Create or fetch a JSON logger with optional file output and static fields.
 
+    Env overrides (used only when `log_path` is None):
+      - LOG_JSON_TO_FILE: when truthy ("1", "true", "yes"), log to a file.
+      - LOG_FILE: path to JSONL log file (default: "user_data/logs/bot.jsonl").
+
     Returns a LoggerAdapter that injects `static_fields` into each record.
     """
     logger = logging.getLogger(name)
@@ -58,9 +63,16 @@ def get_json_logger(
 
     # Avoid duplicate handlers: add only if empty
     if not logger.handlers:
-        if log_path is not None:
-            log_path.parent.mkdir(parents=True, exist_ok=True)
-            handler: logging.Handler = logging.FileHandler(log_path, encoding='utf-8')
+        effective_log_path = log_path
+        if effective_log_path is None:
+            # Env-driven file logging
+            _to_file = os.getenv("LOG_JSON_TO_FILE", "").strip().lower() in {"1", "true", "yes"}
+            if _to_file:
+                effective_log_path = Path(os.getenv("LOG_FILE", "user_data/logs/bot.jsonl"))
+
+        if effective_log_path is not None:
+            effective_log_path.parent.mkdir(parents=True, exist_ok=True)
+            handler: logging.Handler = logging.FileHandler(effective_log_path, encoding='utf-8')
         else:
             handler = logging.StreamHandler()
         handler.setLevel(level)
@@ -68,7 +80,12 @@ def get_json_logger(
         logger.addHandler(handler)
         logger.propagate = False  # stay self-contained
 
-    adapter = logging.LoggerAdapter(logger, extra=static_fields or {})
+    # Inject correlation_id from env if available and not explicitly set
+    fields = dict(static_fields or {})
+    _cid = os.getenv("CORRELATION_ID", "").strip()
+    if _cid and "correlation_id" not in fields:
+        fields["correlation_id"] = _cid
+    adapter = logging.LoggerAdapter(logger, extra=fields)
     return adapter
 
 

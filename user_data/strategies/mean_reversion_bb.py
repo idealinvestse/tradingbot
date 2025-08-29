@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from decimal import Decimal
+import os
 
 import pandas as pd
 from freqtrade.strategy import DecimalParameter, IntParameter
 from freqtrade.strategy.interface import IStrategy
 from pandas import DataFrame
+from app.strategies.logging_utils import get_json_logger
+from app.adapters.onchain.web3_adapter import OnchainClient, Web3Config
 
 
 class MeanReversionBbStrategy(IStrategy):
@@ -90,6 +93,68 @@ class MeanReversionBbStrategy(IStrategy):
 
         # Volymmedel
         df["volume_mean"] = df["volume"].rolling(window=20, min_periods=20).mean()
+        # Live/Dry-run: enrich med senaste pris via DataProvider (fail-safe)
+        try:
+            if hasattr(self, "dp") and self.dp is not None and getattr(self.dp, "runmode", None):
+                rm = getattr(self.dp.runmode, "value", str(self.dp.runmode))
+                if rm in ("live", "dry_run"):
+                    logger = get_json_logger(
+                        "strategy",
+                        static_fields={
+                            "strategy": self.__class__.__name__,
+                            "timeframe": self.timeframe,
+                            "pair": (metadata or {}).get("pair"),
+                            "runmode": rm,
+                        },
+                    )
+                    pair = (metadata or {}).get("pair")
+                    try:
+                        ticker = self.dp.ticker(pair) if pair else None
+                        if ticker:
+                            last = (
+                                ticker.get("last")
+                                or ticker.get("last_price")
+                                or ticker.get("close")
+                                or 0
+                            )
+                            df["last_price"] = last
+                            logger.debug("ticker_fetched", extra={"source": "dp.ticker"})
+                        else:
+                            df["last_price"] = 0
+                            logger.warning("ticker_missing", extra={"reason": "empty_or_no_pair"})
+                    except Exception as e:  # noqa: BLE001
+                        df["last_price"] = 0
+                        logger.error("dp_ticker_error", extra={"error": str(e)})
+        except Exception:
+            pass
+
+        # On-chain (valfritt via env FEATURE_ONCHAIN)
+        try:
+            if os.getenv("FEATURE_ONCHAIN", "").strip().lower() in {"1", "true", "yes"}:
+                address = os.getenv("ONCHAIN_ADDRESS")
+                if address:
+                    logger = get_json_logger(
+                        "strategy",
+                        static_fields={
+                            "strategy": self.__class__.__name__,
+                            "timeframe": self.timeframe,
+                            "pair": (metadata or {}).get("pair"),
+                            "feature": "onchain",
+                        },
+                    )
+                    try:
+                        # Initiera klient och hämta enkel metrik
+                        cfg = Web3Config()
+                        client = OnchainClient(cfg=cfg)
+                        txc = client.get_tx_count(address)
+                        # Sätt samma värde över hela DF för enkelhet
+                        df["wallet_activity"] = txc
+                        logger.info("onchain_tx_count", extra={"address": address, "tx_count": int(txc)})
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning("onchain_error", extra={"error": str(e)})
+        except Exception:
+            pass
+
         return df
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:

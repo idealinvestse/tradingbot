@@ -8,7 +8,8 @@ dependencies = [
     "freqtrade",
     "pandas",
     "numpy",
-    "scipy"
+    "scipy",
+    "web3>=6.0.0"
 ]
 
 [project.optional-dependencies]

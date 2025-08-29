@@ -11,3 +11,4 @@ pytest-mock
 pytest-cov
 freezegun>=1.0.0
 python-dotenv>=1.0.0
+web3>=6.0.0

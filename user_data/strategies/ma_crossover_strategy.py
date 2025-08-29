@@ -6,6 +6,7 @@ import pandas as pd
 from freqtrade.strategy import DecimalParameter, IntParameter
 from freqtrade.strategy.interface import IStrategy
 from pandas import DataFrame
+from app.strategies.logging_utils import get_json_logger
 
 
 class MaCrossoverStrategy(IStrategy):
@@ -108,6 +109,42 @@ class MaCrossoverStrategy(IStrategy):
         tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
         df["atr"] = tr.rolling(window=atr_n, min_periods=atr_n).mean()
 
+        # Live/Dry-run: försök enrich med senaste pris via DataProvider, men krascha inte vid fel
+        try:
+            if hasattr(self, "dp") and self.dp is not None and getattr(self.dp, "runmode", None):
+                rm = getattr(self.dp.runmode, "value", str(self.dp.runmode))
+                if rm in ("live", "dry_run"):
+                    logger = get_json_logger(
+                        "strategy",
+                        static_fields={
+                            "strategy": self.__class__.__name__,
+                            "timeframe": self.timeframe,
+                            "pair": (metadata or {}).get("pair"),
+                            "runmode": rm,
+                        },
+                    )
+                    pair = (metadata or {}).get("pair")
+                    try:
+                        ticker = self.dp.ticker(pair) if pair else None
+                        if ticker:
+                            last = (
+                                ticker.get("last")
+                                or ticker.get("last_price")
+                                or ticker.get("close")
+                                or 0
+                            )
+                            df["last_price"] = last
+                            logger.debug("ticker_fetched", extra={"source": "dp.ticker"})
+                        else:
+                            df["last_price"] = 0
+                            logger.warning("ticker_missing", extra={"reason": "empty_or_no_pair"})
+                    except Exception as e:  # noqa: BLE001
+                        df["last_price"] = 0
+                        logger.error("dp_ticker_error", extra={"error": str(e)})
+        except Exception:
+            # Logging skall aldrig orsaka krasch
+            pass
+
         return df
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -122,6 +159,26 @@ class MaCrossoverStrategy(IStrategy):
         )
 
         df.loc[df["enter_long"], "enter_tag"] = "ema_crossover+filters"
+
+        # Logga antal entry-signaler i live/dry_run för observability
+        try:
+            if hasattr(self, "dp") and self.dp is not None and getattr(self.dp, "runmode", None):
+                rm = getattr(self.dp.runmode, "value", str(self.dp.runmode))
+                if rm in ("live", "dry_run"):
+                    logger = get_json_logger(
+                        "strategy",
+                        static_fields={
+                            "strategy": self.__class__.__name__,
+                            "timeframe": self.timeframe,
+                            "pair": (metadata or {}).get("pair"),
+                            "runmode": rm,
+                        },
+                    )
+                    cnt = int(df.get("enter_long", pd.Series(dtype=bool)).sum())
+                    if cnt:
+                        logger.info("entry_signals", extra={"count": cnt})
+        except Exception:
+            pass
         return df
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -132,6 +189,26 @@ class MaCrossoverStrategy(IStrategy):
         )
 
         df.loc[df["exit_long"], "exit_tag"] = "ema_crossdown"
+
+        # Logga antal exit-signaler i live/dry_run
+        try:
+            if hasattr(self, "dp") and self.dp is not None and getattr(self.dp, "runmode", None):
+                rm = getattr(self.dp.runmode, "value", str(self.dp.runmode))
+                if rm in ("live", "dry_run"):
+                    logger = get_json_logger(
+                        "strategy",
+                        static_fields={
+                            "strategy": self.__class__.__name__,
+                            "timeframe": self.timeframe,
+                            "pair": (metadata or {}).get("pair"),
+                            "runmode": rm,
+                        },
+                    )
+                    cnt = int(df.get("exit_long", pd.Series(dtype=bool)).sum())
+                    if cnt:
+                        logger.info("exit_signals", extra={"count": cnt})
+        except Exception:
+            pass
         return df
 
     # --- Risk/position sizing ---
