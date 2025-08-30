@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import io
 import json
 import logging
@@ -10,14 +9,12 @@ import os
 import sqlite3
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-from freezegun import freeze_time
 
 from app.strategies.logging_utils import JsonFormatter
 from app.strategies.risk import RiskConfig, RiskManager
-
 
 # --- Configuration Loading Tests ---
 
@@ -88,6 +85,7 @@ def test_risk_config_loading_invalid_values(monkeypatch: pytest.MonkeyPatch) -> 
 
 # --- Circuit Breaker Edge Cases ---
 
+
 def test_circuit_breaker_malformed_json(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test that a malformed circuit breaker file is treated as active (fail-safe)."""
     cb_file = tmp_path / "circuit_breaker.json"
@@ -115,6 +113,7 @@ def test_circuit_breaker_invalid_date(monkeypatch: pytest.MonkeyPatch, tmp_path:
 
 # --- Drawdown Guard Edge Cases ---
 
+
 def test_drawdown_check_no_db_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test drawdown check returns None if DB file does not exist."""
     monkeypatch.setenv("RISK_DB_PATH", str(tmp_path / "non_existent.db"))
@@ -133,6 +132,7 @@ def test_drawdown_check_no_tables(monkeypatch: pytest.MonkeyPatch, tmp_path: Pat
 
 
 # --- Incident Logging Tests ---
+
 
 @pytest.mark.parametrize(
     "raw_severity, expected_severity",
@@ -173,6 +173,7 @@ def test_log_incident_severity_normalization(
 
 # --- Concurrency Lock File Edge Cases ---
 
+
 def test_create_lock_write_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test that _create_lock handles write errors gracefully."""
     monkeypatch.setenv("RISK_STATE_DIR", str(tmp_path))
@@ -189,6 +190,7 @@ def test_create_lock_write_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
 
 
 # --- New tests for increased coverage ---
+
 
 def test_risk_config_loading_invalid_numeric_values(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that invalid numeric env vars for live guards fall back to None."""
@@ -261,7 +263,7 @@ def test_release_run_slot_none_and_error(tmp_path: Path) -> None:
     with patch("pathlib.Path.unlink", side_effect=OSError("test error")):
         # Create a dummy lock to attempt to release
         lock_path = rm._create_lock("backtest", "cid-error")
-        rm.release_run_slot(lock_path, correlation_id="cid-error") # Should not raise
+        rm.release_run_slot(lock_path, correlation_id="cid-error")  # Should not raise
 
 
 def test_count_active_locks_stat_fails(tmp_path: Path) -> None:
@@ -269,14 +271,15 @@ def test_count_active_locks_stat_fails(tmp_path: Path) -> None:
     config = RiskConfig(state_dir=tmp_path)
     rm = RiskManager(config)
     running_dir = rm._running_dir()
-    
+
     # Create a lock file that will cause stat to fail
     (running_dir / "backtest_stat_fail.lock").touch()
 
     # Patch stat to fail only for our target file
     original_stat = Path.stat
+
     def stat_wrapper(self, *args, **kwargs):
-        if 'stat_fail' in self.name:
+        if "stat_fail" in self.name:
             raise FileNotFoundError("stat failed")
         return original_stat(self, *args, **kwargs)
 
@@ -337,7 +340,9 @@ def test_count_active_locks_unlink_fails(tmp_path: Path) -> None:
     current_lock.touch()
 
     # Patching in the module where it's used ensures the mock is applied correctly.
-    with patch("app.strategies.risk.Path.unlink", side_effect=OSError("Permission denied")) as mock_unlink:
+    with patch(
+        "app.strategies.risk.Path.unlink", side_effect=OSError("Permission denied")
+    ) as mock_unlink:
         # The stale lock is found and unlink is attempted (and fails).
         # It is not counted. Only the current lock is counted.
         assert rm._count_active_locks("backtest") == 1
@@ -364,10 +369,10 @@ def test_log_incident_db_error_and_coverage(tmp_path: Path) -> None:
         # Custom adapter to ensure 'extra' data is merged, not overwritten.
         class MergingLoggerAdapter(logging.LoggerAdapter):
             def process(self, msg, kwargs):
-                if 'extra' in kwargs:
-                    kwargs['extra'] = {**self.extra, **kwargs['extra']}
+                if "extra" in kwargs:
+                    kwargs["extra"] = {**self.extra, **kwargs["extra"]}
                 else:
-                    kwargs['extra'] = self.extra
+                    kwargs["extra"] = self.extra
                 return msg, kwargs
 
         handler = logging.StreamHandler(log_stream)
@@ -378,7 +383,7 @@ def test_log_incident_db_error_and_coverage(tmp_path: Path) -> None:
         logger.addHandler(handler)
         # The real get_json_logger passes static_fields to the adapter's extra.
         # Ensure we always have a dict for the adapter's extra.
-        adapter_extra = kwargs.get('static_fields') or {}
+        adapter_extra = kwargs.get("static_fields") or {}
         return MergingLoggerAdapter(logger, adapter_extra)
 
     with patch("app.strategies.risk.get_json_logger", new=logger_factory):
@@ -388,7 +393,7 @@ def test_log_incident_db_error_and_coverage(tmp_path: Path) -> None:
             rm.log_incident(run_id="run1", severity="info", description="coverage test")
 
     log_output = log_stream.getvalue().strip()
-    log_lines = log_output.split('\n')
+    log_lines = log_output.split("\n")
     assert len(log_lines) == 2
 
     # 1. Verify the initial incident log record (JSON)
@@ -434,7 +439,7 @@ def test_circuit_breaker_naive_datetime(tmp_path: Path) -> None:
     config = RiskConfig(circuit_breaker_file=cb_file)
     rm = RiskManager(config)
     active, _ = rm._circuit_breaker_active(correlation_id=None)
-    assert active is False # Should be interpreted as expired
+    assert active is False  # Should be interpreted as expired
 
 
 def test_recent_backtest_drawdown_edge_cases(tmp_path: Path) -> None:
@@ -471,6 +476,7 @@ def test_log_incident_db_error(tmp_path: Path) -> None:
     config = RiskConfig(db_path=db_path)
     rm = RiskManager(config)
 
-    with patch("app.strategies.persistence.sqlite.connect", side_effect=sqlite3.OperationalError("DB lock") ):
-        rm.log_incident(run_id="run1", severity="error", description="test") # Should not raise
-
+    with patch(
+        "app.strategies.persistence.sqlite.connect", side_effect=sqlite3.OperationalError("DB lock")
+    ):
+        rm.log_incident(run_id="run1", severity="error", description="test")  # Should not raise

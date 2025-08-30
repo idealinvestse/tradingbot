@@ -31,7 +31,9 @@ def generate_markdown(registry: dict[str, Any]) -> str:
     # Strategies
     lines.append("## Strategier")
     lines.append("")
-    lines.append("| ID | Namn | Klass | Fil | Status | Timeframes | Marknader | Indikatorer | Taggar |")
+    lines.append(
+        "| ID | Namn | Klass | Fil | Status | Timeframes | Marknader | Indikatorer | Taggar |"
+    )
     lines.append("|---|---|---|---|---|---|---|---|---|")
     for s in registry.get("strategies", []):
         lines.append(

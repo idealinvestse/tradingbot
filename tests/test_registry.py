@@ -26,21 +26,15 @@ def test_load_registry_valid(tmp_path: Path) -> None:
                 "timeframes": ["5m"],
                 "markets": ["BTC/USDT"],
                 "indicators": ["RSI"],
-                "parameters": {
-                    "rsi_period": {"type": "IntParameter", "default": 14}
-                },
-                "risk": {
-                    "stoploss": -0.10
-                },
-                "performance": {
-                    "last_backtest": None
-                },
-                "tags": ["test"]
+                "parameters": {"rsi_period": {"type": "IntParameter", "default": 14}},
+                "risk": {"stoploss": -0.10},
+                "performance": {"last_backtest": None},
+                "tags": ["test"],
             }
         ],
         "methods": [],
         "concepts": [],
-        "sources": []
+        "sources": [],
     }
 
     registry_file = tmp_path / "registry.json"
@@ -70,7 +64,7 @@ def test_load_registry_invalid_structure(tmp_path: Path) -> None:
         ],
         "methods": [],
         "concepts": [],
-        "sources": []
+        "sources": [],
     }
 
     registry_file = tmp_path / "invalid_registry.json"
@@ -93,12 +87,12 @@ def test_registry_schema_validation() -> None:
                 "name": "Test Strategy",
                 "class_name": "TestStrategy",
                 "file_path": "user_data/strategies/test_strategy.py",
-                "status": "active"
+                "status": "active",
             }
         ],
         "methods": [],
         "concepts": [],
-        "sources": []
+        "sources": [],
     }
 
     # This should not raise an exception
@@ -113,7 +107,7 @@ def test_registry_schema_validation() -> None:
         "strategies": [],
         "methods": [],
         "concepts": [],
-        "sources": []
+        "sources": [],
     }
 
     # This should raise ValidationError

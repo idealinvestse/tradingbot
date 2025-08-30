@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from app.strategies.ai_registry import AIStrategyType
+    pass
 from app.strategies.utils import get_json_logger
 
 logger = get_json_logger("sqlite_storage")
@@ -436,4 +436,3 @@ def upsert_news_articles(conn: sqlite3.Connection, articles: list[NewsArticle]) 
             ),
         )
     conn.commit()
-

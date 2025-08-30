@@ -63,7 +63,9 @@ class WmaStochSwingStrategy(IStrategy):
         if period <= 1:
             return series
         weights = np.arange(1, period + 1)
-        return series.rolling(period).apply(lambda x: float(np.dot(x, weights)) / weights.sum(), raw=True)
+        return series.rolling(period).apply(
+            lambda x: float(np.dot(x, weights)) / weights.sum(), raw=True
+        )
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         log.debug(f"Populating indicators for {metadata['pair']}... Shape: {dataframe.shape}")
@@ -102,14 +104,16 @@ class WmaStochSwingStrategy(IStrategy):
         log.debug(f"Populating entry trend for {metadata['pair']}...")
         df = dataframe.copy()
         # Uptrend + K cross up D from oversold
-        cross_up = (df["stoch_k"] > df["stoch_d"]) & (df["stoch_k"].shift(1) <= df["stoch_d"].shift(1))
+        cross_up = (df["stoch_k"] > df["stoch_d"]) & (
+            df["stoch_k"].shift(1) <= df["stoch_d"].shift(1)
+        )
         df["enter_long"] = (
-            (df["close"] > df["wma_slow"]) &
-            (df["wma_fast"] > df["wma_slow"]) &
-            cross_up &
-            (df["stoch_k"] < int(self.k_buy_max.value)) &
-            (df["volume"] > 0) &
-            (df["volume_mean"].fillna(0) > 0)
+            (df["close"] > df["wma_slow"])
+            & (df["wma_fast"] > df["wma_slow"])
+            & cross_up
+            & (df["stoch_k"] < int(self.k_buy_max.value))
+            & (df["volume"] > 0)
+            & (df["volume_mean"].fillna(0) > 0)
         )
         df.loc[df["enter_long"], "enter_tag"] = "wma_stoch_long"
 
@@ -122,12 +126,12 @@ class WmaStochSwingStrategy(IStrategy):
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         log.debug(f"Populating exit trend for {metadata['pair']}...")
         df = dataframe.copy()
-        cross_down = (df["stoch_k"] < df["stoch_d"]) & (df["stoch_k"].shift(1) >= df["stoch_d"].shift(1))
-        df["exit_long"] = (
-            (cross_down & (df["stoch_k"] > int(self.k_sell_min.value))) |
-            (df["close"] < df["wma_fast"]) &
-            (df["volume"] > 0)
+        cross_down = (df["stoch_k"] < df["stoch_d"]) & (
+            df["stoch_k"].shift(1) >= df["stoch_d"].shift(1)
         )
+        df["exit_long"] = (cross_down & (df["stoch_k"] > int(self.k_sell_min.value))) | (
+            df["close"] < df["wma_fast"]
+        ) & (df["volume"] > 0)
         df.loc[df["exit_long"], "exit_tag"] = "stoch_revert_or_trend_break"
 
         exit_signals = df[df["exit_long"] == True]

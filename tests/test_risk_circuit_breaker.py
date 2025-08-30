@@ -9,7 +9,9 @@ import pytest
 from app.strategies.risk import RiskManager
 
 
-def _make_cb_file(tmp_path: Path, *, active: bool, until_iso: str | None = None, reason: str = "test") -> Path:
+def _make_cb_file(
+    tmp_path: Path, *, active: bool, until_iso: str | None = None, reason: str = "test"
+) -> Path:
     path = tmp_path / "circuit_breaker.json"
     payload = {"active": active, "reason": reason}
     if until_iso is not None:
@@ -18,7 +20,9 @@ def _make_cb_file(tmp_path: Path, *, active: bool, until_iso: str | None = None,
     return path
 
 
-def test_circuit_breaker_blocks_when_active(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_circuit_breaker_blocks_when_active(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     future = (datetime.now(tz=timezone.utc) + timedelta(hours=1)).isoformat()
     cb_file = _make_cb_file(tmp_path, active=True, until_iso=future)
     monkeypatch.setenv("RISK_CIRCUIT_BREAKER_FILE", str(cb_file))

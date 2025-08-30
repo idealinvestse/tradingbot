@@ -12,7 +12,7 @@ from app.strategies.risk import RiskConfig, RiskManager
 def test_log_incident() -> None:
     """Test that incidents are logged to the database correctly."""
     # Create a temporary database
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp_db:
         db_path = Path(tmp_db.name)
 
     # Create the database schema
@@ -20,7 +20,8 @@ def test_log_incident() -> None:
     cur = con.cursor()
 
     # Create incidents table
-    cur.execute('''
+    cur.execute(
+        """
         CREATE TABLE incidents (
             id TEXT PRIMARY KEY,
             run_id TEXT,
@@ -29,7 +30,8 @@ def test_log_incident() -> None:
             log_excerpt_path TEXT,
             created_utc TEXT
         )
-    ''')
+    """
+    )
 
     con.commit()
     con.close()
@@ -44,7 +46,7 @@ def test_log_incident() -> None:
         severity="warning",
         description="Test incident",
         log_excerpt_path="/path/to/log",
-        correlation_id="test_correlation_id"
+        correlation_id="test_correlation_id",
     )
 
     # Check that the incident was logged to the database
@@ -81,10 +83,11 @@ def test_log_incident_without_db() -> None:
         severity="warning",
         description="Test incident",
         log_excerpt_path="/path/to/log",
-        correlation_id="test_correlation_id"
+        correlation_id="test_correlation_id",
     )
 
     # No assertions needed - the test passes if no exception is raised
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

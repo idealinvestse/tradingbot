@@ -41,7 +41,7 @@ class BacktestMeta:
 
 def _sha256_file(path: Path, chunk_size: int = 1 << 20) -> str:
     h = hashlib.sha256()
-    with path.open('rb') as f:
+    with path.open("rb") as f:
         while True:
             chunk = f.read(chunk_size)
             if not chunk:
@@ -53,7 +53,7 @@ def _sha256_file(path: Path, chunk_size: int = 1 << 20) -> str:
 def parse_backtest_meta(meta_path: Path) -> BacktestMeta | None:
     logger = get_json_logger("metrics", static_fields={"op": "parse_backtest_meta"})
     try:
-        data = json.loads(meta_path.read_text(encoding='utf-8'))
+        data = json.loads(meta_path.read_text(encoding="utf-8"))
     except Exception as e:
         logger.warning("meta_parse_error", extra={"path": str(meta_path), "error": str(e)})
         return None
@@ -73,14 +73,23 @@ def parse_backtest_meta(meta_path: Path) -> BacktestMeta | None:
 
     return BacktestMeta(
         strategy_class=str(strat_class),
-        run_id=str(payload.get('run_id')) if payload.get('run_id') else meta_path.stem,
-        timeframe=payload.get('timeframe'),
-        start_ts=payload.get('backtest_start_ts'),
-        end_ts=payload.get('backtest_end_ts'),
+        run_id=str(payload.get("run_id")) if payload.get("run_id") else meta_path.stem,
+        timeframe=payload.get("timeframe"),
+        start_ts=payload.get("backtest_start_ts"),
+        end_ts=payload.get("backtest_end_ts"),
     )
 
 
-def _upsert_experiment(cur, exp_id: str, idea_id: str, strategy_id: str, timeframe: str | None, start_iso: str | None, end_iso: str | None, config_hash: str | None = None) -> None:
+def _upsert_experiment(
+    cur,
+    exp_id: str,
+    idea_id: str,
+    strategy_id: str,
+    timeframe: str | None,
+    start_iso: str | None,
+    end_iso: str | None,
+    config_hash: str | None = None,
+) -> None:
     logger = get_json_logger("metrics", static_fields={"op": "_upsert_experiment"})
     logger.debug("upserting_experiment", extra={"exp_id": exp_id, "strategy_id": strategy_id})
     cur.execute(
@@ -108,7 +117,17 @@ def _upsert_experiment(cur, exp_id: str, idea_id: str, strategy_id: str, timefra
     )
 
 
-def _upsert_run(cur, run_id: str, experiment_id: str, kind: str, started_iso: str | None, finished_iso: str | None, status: str, artifacts_path: str | None, data_window: str | None = None) -> None:
+def _upsert_run(
+    cur,
+    run_id: str,
+    experiment_id: str,
+    kind: str,
+    started_iso: str | None,
+    finished_iso: str | None,
+    status: str,
+    artifacts_path: str | None,
+    data_window: str | None = None,
+) -> None:
     logger = get_json_logger("metrics", static_fields={"op": "_upsert_run"})
     logger.debug("upserting_run", extra={"run_id": run_id, "kind": kind, "status": status})
     cur.execute(
@@ -144,7 +163,7 @@ def _upsert_metric(cur, run_id: str, key: str, value: float) -> None:
     # Use Decimal for monetary values to maintain precision
     # Quantize to 8 decimal places to match the precision used in _parse_zip_metrics
     # Only cast to float at the DB boundary as the schema uses REAL
-    decimal_value = Decimal(str(value)).quantize(Decimal('0.00000001'))
+    decimal_value = Decimal(str(value)).quantize(Decimal("0.00000001"))
     cur.execute(
         """
         INSERT INTO metrics (run_id, key, value)
@@ -158,7 +177,9 @@ def _upsert_metric(cur, run_id: str, key: str, value: float) -> None:
 
 def _upsert_artifact(cur, run_id: str, name: str, path: str, sha256: str | None) -> None:
     logger = get_json_logger("metrics", static_fields={"op": "_upsert_artifact"})
-    logger.debug("upserting_artifact", extra={"run_id": run_id, "name": name, "sha256": sha256 or ''})
+    logger.debug(
+        "upserting_artifact", extra={"run_id": run_id, "name": name, "sha256": sha256 or ""}
+    )
     cur.execute(
         """
         INSERT INTO artifacts (run_id, name, path, sha256)
@@ -181,50 +202,68 @@ def _parse_zip_metrics(zip_path: Path) -> dict[str, float]:
     try:
         with zipfile.ZipFile(zip_path) as zf:
             # Find main JSON result
-            names = [n for n in zf.namelist() if n.endswith('.json') and '_config' not in n and '_Strategy' not in n]
+            names = [
+                n
+                for n in zf.namelist()
+                if n.endswith(".json") and "_config" not in n and "_Strategy" not in n
+            ]
             if not names:
                 return out
-            data = json.loads(zf.read(names[0]).decode('utf-8'))
+            data = json.loads(zf.read(names[0]).decode("utf-8"))
 
             # strategy section: {strategy_name: {...}}
-            strat = data.get('strategy')
+            strat = data.get("strategy")
             if isinstance(strat, dict) and strat:
                 strat_name = next(iter(strat.keys()))
                 sd = strat.get(strat_name, {})
                 if isinstance(sd, dict):
                     # Use Decimal for monetary values to maintain precision internally
                     # Only cast to float at the end for DB storage
-                    monetary_keys = ('profit_total', 'profit_total_abs', 'profit_mean', 'profit_median',
-                                   'cagr', 'expectancy', 'expectancy_ratio', 'market_change')
+                    monetary_keys = (
+                        "profit_total",
+                        "profit_total_abs",
+                        "profit_mean",
+                        "profit_median",
+                        "cagr",
+                        "expectancy",
+                        "expectancy_ratio",
+                        "market_change",
+                    )
 
                     for k in monetary_keys:
                         v = sd.get(k)
                         if isinstance(v, (int, float)):
                             # Use Decimal for precision, then convert to float for DB storage
-                            decimal_v = Decimal(str(v)).quantize(Decimal('0.00000001'))
+                            decimal_v = Decimal(str(v)).quantize(Decimal("0.00000001"))
                             out[k] = float(decimal_v)
 
                     # Non-monetary keys that can remain as regular floats
-                    for k in ('sortino', 'sharpe', 'calmar', 'sqn', 'profit_factor',
-                             'trades_per_day'):
+                    for k in (
+                        "sortino",
+                        "sharpe",
+                        "calmar",
+                        "sqn",
+                        "profit_factor",
+                        "trades_per_day",
+                    ):
                         v = sd.get(k)
                         if isinstance(v, (int, float)):
                             out[k] = float(v)
 
                     # total_trades
-                    tt = sd.get('total_trades') or sd.get('trades')
+                    tt = sd.get("total_trades") or sd.get("trades")
                     if isinstance(tt, (int, float)):
-                        out['trades'] = float(tt)
+                        out["trades"] = float(tt)
 
             # strategy_comparison: list of per-strategy summaries
-            comp = data.get('strategy_comparison')
+            comp = data.get("strategy_comparison")
             if isinstance(comp, list) and comp:
                 # pick matching strategy by 'key' if possible, else first
                 chosen = None
                 if isinstance(strat, dict) and strat:
                     strat_name = next(iter(strat.keys()))
                     for item in comp:
-                        if isinstance(item, dict) and item.get('key') == strat_name:
+                        if isinstance(item, dict) and item.get("key") == strat_name:
                             chosen = item
                             break
                 if chosen is None and isinstance(comp[0], dict):
@@ -232,19 +271,36 @@ def _parse_zip_metrics(zip_path: Path) -> dict[str, float]:
                 if isinstance(chosen, dict):
                     # Use Decimal for monetary values to maintain precision internally
                     # Only cast to float at the end for DB storage
-                    monetary_keys = ('profit_total', 'profit_total_abs', 'profit_mean',
-                                   'profit_total_pct', 'max_drawdown_account', 'max_drawdown_abs')
+                    monetary_keys = (
+                        "profit_total",
+                        "profit_total_abs",
+                        "profit_mean",
+                        "profit_total_pct",
+                        "max_drawdown_account",
+                        "max_drawdown_abs",
+                    )
 
                     for k in monetary_keys:
                         v = chosen.get(k)
                         if isinstance(v, (int, float)):
                             # Use Decimal for precision, then convert to float for DB storage
-                            decimal_v = Decimal(str(v)).quantize(Decimal('0.00000001'))
+                            decimal_v = Decimal(str(v)).quantize(Decimal("0.00000001"))
                             out[k] = float(decimal_v)
 
                     # Non-monetary keys that can remain as regular floats
-                    for k in ('wins', 'losses', 'draws', 'winrate', 'duration_avg', 'sortino',
-                             'sharpe', 'calmar', 'sqn', 'profit_factor', 'trades'):
+                    for k in (
+                        "wins",
+                        "losses",
+                        "draws",
+                        "winrate",
+                        "duration_avg",
+                        "sortino",
+                        "sharpe",
+                        "calmar",
+                        "sqn",
+                        "profit_factor",
+                        "trades",
+                    ):
                         v = chosen.get(k)
                         if isinstance(v, (int, float)):
                             out[k] = float(v)
@@ -281,7 +337,9 @@ def index_backtests(backtests_dir: Path, db_path: Path) -> int:
 
         # Create synthetic IDs to tie together minimal experiment/run lineage
         strategy_id = meta.strategy_class  # if registry uses IDs differently, this is a placeholder
-        exp_id = f"exp:{strategy_id}:{meta.timeframe or ''}:{meta.start_ts or ''}-{meta.end_ts or ''}"
+        exp_id = (
+            f"exp:{strategy_id}:{meta.timeframe or ''}:{meta.start_ts or ''}-{meta.end_ts or ''}"
+        )
         # Try to discover config hash inside ZIP (if present)
         config_hash: str | None = None
         zip_candidate = meta_path.with_suffix(".zip")
@@ -333,10 +391,18 @@ def index_backtests(backtests_dir: Path, db_path: Path) -> int:
         if meta.start_ts is not None and meta.end_ts is not None:
             _upsert_metric(cur, meta.run_id, "window_days", (meta.end_ts - meta.start_ts) / 86400.0)
         if meta.timeframe:
-            _upsert_metric(cur, meta.run_id, "timeframe_minutes", _timeframe_to_minutes(meta.timeframe))
+            _upsert_metric(
+                cur, meta.run_id, "timeframe_minutes", _timeframe_to_minutes(meta.timeframe)
+            )
 
         # Artifacts: link meta json and potential zip with sha256
-        _upsert_artifact(cur, meta.run_id, name=meta_path.name, path=str(meta_path), sha256=_sha256_file(meta_path))
+        _upsert_artifact(
+            cur,
+            meta.run_id,
+            name=meta_path.name,
+            path=str(meta_path),
+            sha256=_sha256_file(meta_path),
+        )
         zip_candidate = meta_path.with_suffix(".zip")
         if not zip_candidate.exists():
             # Some files may include timestamps in names; try glob by stem prefix
@@ -345,7 +411,13 @@ def index_backtests(backtests_dir: Path, db_path: Path) -> int:
             if zips:
                 zip_candidate = zips[0]
         if zip_candidate.exists():
-            _upsert_artifact(cur, meta.run_id, name=zip_candidate.name, path=str(zip_candidate), sha256=_sha256_file(zip_candidate))
+            _upsert_artifact(
+                cur,
+                meta.run_id,
+                name=zip_candidate.name,
+                path=str(zip_candidate),
+                sha256=_sha256_file(zip_candidate),
+            )
             # Parse and upsert detailed metrics from ZIP summary JSON
             metrics = _parse_zip_metrics(zip_candidate)
             for k, v in metrics.items():
@@ -360,7 +432,10 @@ def index_backtests(backtests_dir: Path, db_path: Path) -> int:
 
     conn.commit()
     conn.close()
-    logger.info("index_done", extra={"count": count, "db_path": str(db_path), "meta_invalid": meta_invalid_count})
+    logger.info(
+        "index_done",
+        extra={"count": count, "db_path": str(db_path), "meta_invalid": meta_invalid_count},
+    )
     return count
 
 
@@ -517,42 +592,47 @@ def index_hyperopts(hyperopt_dir: Path, db_path: Path) -> int:
 # ---- Optional Pydantic validation helpers ----
 try:
     from pydantic import BaseModel
+
     try:
         from pydantic import ConfigDict, model_validator  # v2
+
         _PYD_V2 = True
     except Exception:  # pragma: no cover - depends on pydantic version
         _PYD_V2 = False
         from pydantic import Extra, validator  # type: ignore
 
     if _PYD_V2:
+
         class _BacktestPayloadModel(BaseModel):  # type: ignore[misc]
             run_id: str | None = None
             timeframe: str | None = None
             backtest_start_ts: int | None = None
             backtest_end_ts: int | None = None
 
-            model_config = ConfigDict(extra='allow')
+            model_config = ConfigDict(extra="allow")
 
             # Add field validators for better type checking
-            @model_validator(mode='before')
+            @model_validator(mode="before")
             @classmethod
             def validate_timestamps(cls, values: dict[str, Any]) -> dict[str, Any]:
-                start_ts = values.get('backtest_start_ts')
-                end_ts = values.get('backtest_end_ts')
+                start_ts = values.get("backtest_start_ts")
+                end_ts = values.get("backtest_end_ts")
 
                 # Ensure timestamps are reasonable (Unix timestamps)
                 if start_ts is not None and not isinstance(start_ts, (int, float)):
-                    raise ValueError('backtest_start_ts must be a number')
+                    raise ValueError("backtest_start_ts must be a number")
                 if end_ts is not None and not isinstance(end_ts, (int, float)):
-                    raise ValueError('backtest_end_ts must be a number')
+                    raise ValueError("backtest_end_ts must be a number")
 
                 # Ensure start is before end if both are present
                 if start_ts is not None and end_ts is not None:
                     if start_ts >= end_ts:
-                        raise ValueError('backtest_start_ts must be before backtest_end_ts')
+                        raise ValueError("backtest_start_ts must be before backtest_end_ts")
 
                 return values
+
     else:
+
         class _BacktestPayloadModel(BaseModel):  # type: ignore[misc]
             run_id: str | None = None
             timeframe: str | None = None
@@ -563,41 +643,44 @@ try:
                 extra = Extra.allow  # type: ignore[attr-defined]
 
             # Add field validators for better type checking
-            @validator('backtest_start_ts', 'backtest_end_ts')
+            @validator("backtest_start_ts", "backtest_end_ts")
             def validate_timestamps(cls, v: Any, field: ModelField) -> Any:  # type: ignore[name-defined]
                 if v is not None and not isinstance(v, (int, float)):
-                    raise ValueError(f'{field.name} must be a number')
+                    raise ValueError(f"{field.name} must be a number")
                 return v
 
     if _PYD_V2:
+
         class _HyperoptTrialModel(BaseModel):  # type: ignore[misc]
             loss: float | None = None
             params_dict: dict[str, Any] | None = None
             results_metrics: dict[str, Any] | None = None
 
-            model_config = ConfigDict(extra='allow')
+            model_config = ConfigDict(extra="allow")
 
             # Add field validators for better type checking
-            @model_validator(mode='before')
+            @model_validator(mode="before")
             @classmethod
             def validate_trial(cls, values: dict[str, Any]) -> dict[str, Any]:
                 # Validate loss is a number if present
-                loss = values.get('loss')
+                loss = values.get("loss")
                 if loss is not None and not isinstance(loss, (int, float)):
-                    raise ValueError('loss must be a number')
+                    raise ValueError("loss must be a number")
 
                 # Validate params_dict is a dict if present
-                params = values.get('params_dict')
+                params = values.get("params_dict")
                 if params is not None and not isinstance(params, dict):
-                    raise ValueError('params_dict must be a dictionary')
+                    raise ValueError("params_dict must be a dictionary")
 
                 # Validate results_metrics is a dict if present
-                metrics = values.get('results_metrics')
+                metrics = values.get("results_metrics")
                 if metrics is not None and not isinstance(metrics, dict):
-                    raise ValueError('results_metrics must be a dictionary')
+                    raise ValueError("results_metrics must be a dictionary")
 
                 return values
+
     else:
+
         class _HyperoptTrialModel(BaseModel):  # type: ignore[misc]
             loss: float | None = None
             params_dict: dict[str, Any] | None = None
@@ -607,16 +690,16 @@ try:
                 extra = Extra.allow  # type: ignore[attr-defined]
 
             # Add field validators for better type checking
-            @validator('loss')
+            @validator("loss")
             def validate_loss(cls, v: Any) -> Any:  # type: ignore[name-defined]
                 if v is not None and not isinstance(v, (int, float)):
-                    raise ValueError('loss must be a number')
+                    raise ValueError("loss must be a number")
                 return v
 
-            @validator('params_dict', 'results_metrics')
+            @validator("params_dict", "results_metrics")
             def validate_dict_fields(cls, v: Any, field: ModelField) -> Any:  # type: ignore[name-defined]
                 if v is not None and not isinstance(v, dict):
-                    raise ValueError(f'{field.name} must be a dictionary')
+                    raise ValueError(f"{field.name} must be a dictionary")
                 return v
 
     _PYDANTIC_OK = True

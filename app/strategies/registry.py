@@ -18,7 +18,9 @@ def load_registry(path: Path) -> dict[str, Any]:
     Raises ValidationError if registry structure is invalid.
     """
     cid = uuid.uuid4().hex
-    logger = get_json_logger("registry", static_fields={"correlation_id": cid, "op": "load_registry"})
+    logger = get_json_logger(
+        "registry", static_fields={"correlation_id": cid, "op": "load_registry"}
+    )
     logger.info("start", extra={"path": str(path)})
 
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -38,7 +40,9 @@ def write_markdown(registry: dict[str, Any], out_path: Path) -> None:
 
 def export_sqlite(registry: dict[str, Any], db_path: Path) -> None:
     cid = uuid.uuid4().hex
-    logger = get_json_logger("registry", static_fields={"correlation_id": cid, "op": "export_sqlite"})
+    logger = get_json_logger(
+        "registry", static_fields={"correlation_id": cid, "op": "export_sqlite"}
+    )
     logger.info("start", extra={"db_path": str(db_path)})
 
     conn = connect(db_path)

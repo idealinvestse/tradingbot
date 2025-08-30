@@ -102,9 +102,7 @@ class SentimentStrategy(IStrategy):
         dataframe.loc[dataframe.index[-1], "enter_long"] = 1 if decision.action == "buy" else 0
 
         if decision.action == "buy":
-            logger.info(
-                f"Decision: BUY. Reason: {decision.reason}. Metadata: {decision.metadata}"
-            )
+            logger.info(f"Decision: BUY. Reason: {decision.reason}. Metadata: {decision.metadata}")
 
         return dataframe
 
@@ -113,5 +111,3 @@ class SentimentStrategy(IStrategy):
         # A more complex model could also provide sell decisions.
         dataframe["exit_long"] = 0
         return dataframe
-
-

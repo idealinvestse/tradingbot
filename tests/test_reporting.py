@@ -12,7 +12,7 @@ from app.strategies.reporting import generate_results_markdown_from_db
 def test_generate_results_markdown_from_db_with_decimal_precision() -> None:
     """Test that generate_results_markdown_from_db maintains precision for monetary values using Decimal."""
     # Create a temporary database
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp_db:
         db_path = Path(tmp_db.name)
 
     # Create the database schema
@@ -20,7 +20,8 @@ def test_generate_results_markdown_from_db_with_decimal_precision() -> None:
     cur = con.cursor()
 
     # Create tables
-    cur.execute('''
+    cur.execute(
+        """
         CREATE TABLE runs (
             id TEXT PRIMARY KEY,
             experiment_id TEXT NOT NULL,
@@ -29,23 +30,29 @@ def test_generate_results_markdown_from_db_with_decimal_precision() -> None:
             finished_utc TEXT,
             status TEXT
         )
-    ''')
+    """
+    )
 
-    cur.execute('''
+    cur.execute(
+        """
         CREATE TABLE metrics (
             run_id TEXT,
             key TEXT,
             value REAL,
             PRIMARY KEY (run_id, key)
         )
-    ''')
+    """
+    )
 
     # Insert test data
     run_id = "test_run_1"
-    cur.execute('''
+    cur.execute(
+        """
         INSERT INTO runs (id, experiment_id, kind, started_utc, finished_utc, status)
         VALUES (?, ?, ?, ?, ?, ?)
-    ''', (run_id, "exp_1", "backtest", "2025-01-01T12:00:00Z", "2025-01-01T13:00:00Z", "completed"))
+    """,
+        (run_id, "exp_1", "backtest", "2025-01-01T12:00:00Z", "2025-01-01T13:00:00Z", "completed"),
+    )
 
     # Insert metrics with high precision values
     metrics = {
@@ -56,14 +63,17 @@ def test_generate_results_markdown_from_db_with_decimal_precision() -> None:
         "sortino": 2.34567890,
         "winrate": 0.65432109,
         "loss": 0.987654321,
-        "trades": 100.0
+        "trades": 100.0,
     }
 
     for key, value in metrics.items():
-        cur.execute('''
+        cur.execute(
+            """
             INSERT INTO metrics (run_id, key, value)
             VALUES (?, ?, ?)
-        ''', (run_id, key, value))
+        """,
+            (run_id, key, value),
+        )
 
     con.commit()
     con.close()
@@ -87,7 +97,7 @@ def test_generate_results_markdown_from_db_with_decimal_precision() -> None:
 def test_generate_results_markdown_from_db_empty() -> None:
     """Test that generate_results_markdown_from_db handles empty database correctly."""
     # Create a temporary database
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp_db:
         db_path = Path(tmp_db.name)
 
     # Create the database schema
@@ -95,7 +105,8 @@ def test_generate_results_markdown_from_db_empty() -> None:
     cur = con.cursor()
 
     # Create tables
-    cur.execute('''
+    cur.execute(
+        """
         CREATE TABLE runs (
             id TEXT PRIMARY KEY,
             experiment_id TEXT NOT NULL,
@@ -104,16 +115,19 @@ def test_generate_results_markdown_from_db_empty() -> None:
             finished_utc TEXT,
             status TEXT
         )
-    ''')
+    """
+    )
 
-    cur.execute('''
+    cur.execute(
+        """
         CREATE TABLE metrics (
             run_id TEXT,
             key TEXT,
             value REAL,
             PRIMARY KEY (run_id, key)
         )
-    ''')
+    """
+    )
 
     con.commit()
     con.close()
@@ -127,6 +141,7 @@ def test_generate_results_markdown_from_db_empty() -> None:
 
     # Clean up
     db_path.unlink()
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

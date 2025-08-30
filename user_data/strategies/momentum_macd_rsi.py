@@ -6,6 +6,7 @@ import pandas as pd
 from freqtrade.strategy import DecimalParameter, IntParameter
 from freqtrade.strategy.interface import IStrategy
 from pandas import DataFrame
+
 from app.strategies.logging_utils import get_json_logger
 
 
@@ -155,12 +156,12 @@ class MomentumMacdRsiStrategy(IStrategy):
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         df["enter_long"] = (
-            (df["macdhist"] > 0) &
-            (df["macdhist"] > df["macdhist"].shift(1)) &
-            (df["rsi"] > int(self.rsi_buy.value)) &
-            (df["bb_width"] > float(self.bb_min_width.value)) &
-            (df["volume"] > 0) &
-            (df["volume_mean"].fillna(0) > 0)
+            (df["macdhist"] > 0)
+            & (df["macdhist"] > df["macdhist"].shift(1))
+            & (df["rsi"] > int(self.rsi_buy.value))
+            & (df["bb_width"] > float(self.bb_min_width.value))
+            & (df["volume"] > 0)
+            & (df["volume_mean"].fillna(0) > 0)
         )
         df.loc[df["enter_long"], "enter_tag"] = "mom_macd_rsi"
 
@@ -187,10 +188,7 @@ class MomentumMacdRsiStrategy(IStrategy):
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
-        df["exit_long"] = (
-            ((df["macdhist"] < 0) | (df["rsi"] < 50)) &
-            (df["volume"] > 0)
-        )
+        df["exit_long"] = ((df["macdhist"] < 0) | (df["rsi"] < 50)) & (df["volume"] > 0)
         df.loc[df["exit_long"], "exit_tag"] = "mom_loss_momentum"
 
         # Logga exit-signaler i live/dry_run

@@ -14,6 +14,8 @@ class MockSentimentProvider(BaseSentimentProvider):
     def get_score(self, pair: str, at: datetime | None = None) -> float:
         at = at or datetime.now(timezone.utc)
         # Simple deterministic hash based on hour and pair length
-        h = (hash((pair, at.replace(minute=0, second=0, microsecond=0).isoformat())) % 1000) / 1000.0
+        h = (
+            hash((pair, at.replace(minute=0, second=0, microsecond=0).isoformat())) % 1000
+        ) / 1000.0
         # map [0,1] -> [-0.2, 0.2]
         return (h - 0.5) * 0.4

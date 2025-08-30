@@ -1,9 +1,8 @@
 """AI Strategy Registry for managing all AI-powered trading"""
 
 import json
-from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -14,7 +13,7 @@ logger = get_json_logger("ai_strategy_registry")
 
 class AIStrategyType(str, Enum):
     """AI strategy types from GROK.md."""
-    
+
     SENTIMENT_ANALYSIS = "sentiment_analysis"
     PREDICTIVE_MODELING = "predictive_modeling"
     REINFORCEMENT_LEARNING = "reinforcement_learning"
@@ -29,46 +28,47 @@ class AIStrategyType(str, Enum):
 
 class AIStrategyConfig(BaseModel):
     """Configuration for an AI strategy."""
-    
+
     name: str
     strategy_type: AIStrategyType
     description: str
     mechanics: str
     why_effective: str
     example: str
-    bots: List[str] = Field(default_factory=list)
-    pros: List[str] = Field(default_factory=list)
-    cons: List[str] = Field(default_factory=list)
-    risks: List[str] = Field(default_factory=list)
+    bots: list[str] = Field(default_factory=list)
+    pros: list[str] = Field(default_factory=list)
+    cons: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
     performance_metrics: str
     insights_2025: str = Field(alias="2025_insights")
-    
+
     # Strategy-specific parameters
     enabled: bool = True
     min_confidence: float = 0.6
     max_risk_per_trade: float = 0.02  # 2% max risk
     lookback_period: int = 100
     rebalance_threshold: float = 0.05
-    
+
     # ML model settings
-    model_type: Optional[str] = None
-    model_version: Optional[str] = None
-    feature_set: Optional[List[str]] = None
-    
+    model_type: str | None = None
+    model_version: str | None = None
+    feature_set: list[str] | None = None
+
     class Config:
         """Pydantic config."""
+
         populate_by_name = True
 
 
 class AIStrategyRegistry:
     """Central registry for all AI strategies."""
-    
-    def __init__(self):
+
+    def __init__(self) -> None:
         """Initialize the registry."""
-        self.strategies: Dict[str, AIStrategyConfig] = {}
+        self.strategies: dict[str, AIStrategyConfig] = {}
         self._load_default_strategies()
-        
-    def _load_default_strategies(self):
+
+    def _load_default_strategies(self) -> None:
         """Load default strategies from GROK.md definitions."""
         default_strategies = [
             {
@@ -85,7 +85,7 @@ class AIStrategyRegistry:
                 "performance_metrics": "70-85% accuracy in backtests",
                 "2025_insights": "Thrives with ETF booms; integrated in bots for altcoin hype",
                 "model_type": "BERT",
-                "min_confidence": 0.7
+                "min_confidence": 0.7,
             },
             {
                 "name": "Machine Learning Predictive Modeling",
@@ -101,7 +101,7 @@ class AIStrategyRegistry:
                 "performance_metrics": "28% monthly in 2025 surges",
                 "2025_insights": "Essential for quant with $150k BTC potential",
                 "model_type": "LSTM",
-                "lookback_period": 200
+                "lookback_period": 200,
             },
             {
                 "name": "Reinforcement Learning Optimization",
@@ -116,7 +116,7 @@ class AIStrategyRegistry:
                 "risks": ["Convergence failure", "Ethical issues"],
                 "performance_metrics": "50% performance boost",
                 "2025_insights": "For unpredictable assets amid market shifts",
-                "model_type": "DQN"
+                "model_type": "DQN",
             },
             {
                 "name": "AI-Enhanced Arbitrage",
@@ -132,7 +132,7 @@ class AIStrategyRegistry:
                 "performance_metrics": "20-30% annual",
                 "2025_insights": "Cross-chain growth in DeFi",
                 "min_confidence": 0.9,
-                "max_risk_per_trade": 0.005
+                "max_risk_per_trade": 0.005,
             },
             {
                 "name": "Grid Trading with AI",
@@ -147,7 +147,7 @@ class AIStrategyRegistry:
                 "risks": ["Breaches", "Loss accumulation"],
                 "performance_metrics": "35% boost",
                 "2025_insights": "Adaptive for range-bound phases",
-                "rebalance_threshold": 0.02
+                "rebalance_threshold": 0.02,
             },
             {
                 "name": "Momentum Trading via AI",
@@ -162,7 +162,7 @@ class AIStrategyRegistry:
                 "risks": ["Whipsaws", "Overconfidence"],
                 "performance_metrics": "40% accuracy",
                 "2025_insights": "Amplified in bull cycles",
-                "min_confidence": 0.65
+                "min_confidence": 0.65,
             },
             {
                 "name": "Portfolio Rebalancing with AI",
@@ -177,7 +177,7 @@ class AIStrategyRegistry:
                 "risks": ["Volatile periods", "Tax implications"],
                 "performance_metrics": "25% reduction",
                 "2025_insights": "For multi-alt amid diversification",
-                "rebalance_threshold": 0.1
+                "rebalance_threshold": 0.1,
             },
             {
                 "name": "DCA with AI Timing",
@@ -192,7 +192,7 @@ class AIStrategyRegistry:
                 "risks": ["Prolonged bears", "Opportunity cost"],
                 "performance_metrics": "30% improvement",
                 "2025_insights": "Long-haul with ETF booms",
-                "min_confidence": 0.6
+                "min_confidence": 0.6,
             },
             {
                 "name": "High-Frequency Trading (HFT) with AI",
@@ -207,7 +207,7 @@ class AIStrategyRegistry:
                 "risks": ["Latency", "Flash crashes"],
                 "performance_metrics": "1000+ trades/day",
                 "2025_insights": "Expanded liquid markets",
-                "max_risk_per_trade": 0.001
+                "max_risk_per_trade": 0.001,
             },
             {
                 "name": "Narrative and Trend Detection with AI",
@@ -222,36 +222,36 @@ class AIStrategyRegistry:
                 "risks": ["Bubbles", "Narrative shifts"],
                 "performance_metrics": "40% advantage",
                 "2025_insights": "AI coins, DeFi 2.0 trends",
-                "min_confidence": 0.55
-            }
+                "min_confidence": 0.55,
+            },
         ]
-        
+
         for strategy_data in default_strategies:
             try:
                 strategy = AIStrategyConfig(**strategy_data)
                 self.register_strategy(strategy)
             except Exception as e:
                 logger.error(f"Failed to load strategy {strategy_data.get('name')}: {e}")
-    
+
     def register_strategy(self, strategy: AIStrategyConfig) -> None:
         """Register a new AI strategy."""
         key = f"{strategy.strategy_type.value}_{strategy.name.replace(' ', '_').lower()}"
         self.strategies[key] = strategy
         logger.info(f"Registered AI strategy: {key}")
-    
-    def get_strategy(self, key: str) -> Optional[AIStrategyConfig]:
+
+    def get_strategy(self, key: str) -> AIStrategyConfig | None:
         """Get a strategy by key."""
         return self.strategies.get(key)
-    
-    def get_enabled_strategies(self) -> List[AIStrategyConfig]:
+
+    def get_enabled_strategies(self) -> list[AIStrategyConfig]:
         """Get all enabled strategies."""
         return [s for s in self.strategies.values() if s.enabled]
-    
-    def get_strategies_by_type(self, strategy_type: AIStrategyType) -> List[AIStrategyConfig]:
+
+    def get_strategies_by_type(self, strategy_type: AIStrategyType) -> list[AIStrategyConfig]:
         """Get strategies by type."""
         return [s for s in self.strategies.values() if s.strategy_type == strategy_type]
-    
-    def update_strategy_config(self, key: str, updates: Dict[str, Any]) -> bool:
+
+    def update_strategy_config(self, key: str, updates: dict[str, Any]) -> bool:
         """Update strategy configuration."""
         if key in self.strategies:
             strategy = self.strategies[key]
@@ -261,29 +261,29 @@ class AIStrategyRegistry:
             logger.info(f"Updated strategy config for {key}")
             return True
         return False
-    
-    def get_by_type(self, strategy_type: str) -> List[AIStrategyConfig]:
+
+    def get_by_type(self, strategy_type: str) -> list[AIStrategyConfig]:
         """Get all strategies of a specific type."""
         matching_strategies = []
         for strategy in self.strategies.values():
             # Check if strategy_type matches the enum value or name
-            if (strategy.strategy_type.value == strategy_type or 
-                strategy.strategy_type.name.lower() == strategy_type.lower()):
+            if (
+                strategy.strategy_type.value == strategy_type
+                or strategy.strategy_type.name.lower() == strategy_type.lower()
+            ):
                 matching_strategies.append(strategy)
         return matching_strategies
-    
+
     def export_strategies_json(self) -> str:
         """Export all strategies as JSON."""
-        strategies_list = [
-            strategy.dict(by_alias=True) for strategy in self.strategies.values()
-        ]
+        strategies_list = [strategy.dict(by_alias=True) for strategy in self.strategies.values()]
         return json.dumps({"strategies": strategies_list}, indent=2)
-    
+
     def import_strategies_json(self, json_data: str) -> int:
         """Import strategies from JSON."""
         data = json.loads(json_data)
         imported_count = 0
-        
+
         for strategy_data in data.get("strategies", []):
             try:
                 strategy = AIStrategyConfig(**strategy_data)
@@ -291,5 +291,5 @@ class AIStrategyRegistry:
                 imported_count += 1
             except Exception as e:
                 logger.error(f"Failed to import strategy: {e}")
-        
+
         return imported_count

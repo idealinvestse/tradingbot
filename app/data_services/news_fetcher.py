@@ -13,7 +13,9 @@ class BaseNewsFetcher(abc.ABC):
     """
 
     @abc.abstractmethod
-    def fetch_news(self, symbols: list[str], since: datetime.datetime, until: datetime.datetime) -> list[NewsArticle]:
+    def fetch_news(
+        self, symbols: list[str], since: datetime.datetime, until: datetime.datetime
+    ) -> list[NewsArticle]:
         """
         Fetches news articles for a given list of symbols within a time range.
 
@@ -31,13 +33,13 @@ class DemoNewsFetcher(BaseNewsFetcher):
     Useful for development and testing without requiring an API key.
     """
 
-    def fetch_news(self, symbols: list[str], since: datetime.datetime, until: datetime.datetime) -> list[NewsArticle]:
+    def fetch_news(
+        self, symbols: list[str], since: datetime.datetime, until: datetime.datetime
+    ) -> list[NewsArticle]:
         """
         Returns a list of dummy news articles for the requested symbols.
         """
-        logger.info(
-            f"Fetching demo news for symbols: {symbols} from {since} to {until}"
-        )
+        logger.info(f"Fetching demo news for symbols: {symbols} from {since} to {until}")
 
         # Create a sample of articles that could match the request
         all_articles = [
@@ -45,7 +47,8 @@ class DemoNewsFetcher(BaseNewsFetcher):
                 source="CryptoNews",
                 headline="Bitcoin Surges Past $80,000 in Historic Rally",
                 url="https://example.com/btc-rally",
-                published_at=datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=1),
+                published_at=datetime.datetime.now(datetime.timezone.utc)
+                - datetime.timedelta(hours=1),
                 symbols=["BTC/USDT", "BTC/EUR"],
                 summary="Bitcoin (BTC) has reached a new all-time high, driven by institutional adoption.",
             ),
@@ -53,7 +56,8 @@ class DemoNewsFetcher(BaseNewsFetcher):
                 source="TechChronicle",
                 headline="Ethereum 2.0 Upgrade Nears Completion, Boosting Investor Confidence",
                 url="https://example.com/eth-upgrade",
-                published_at=datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=2),
+                published_at=datetime.datetime.now(datetime.timezone.utc)
+                - datetime.timedelta(hours=2),
                 symbols=["ETH/USDT"],
                 summary="The final phase of the Ethereum 2.0 rollout is expected to significantly reduce gas fees.",
             ),
@@ -61,7 +65,8 @@ class DemoNewsFetcher(BaseNewsFetcher):
                 source="MarketWatch",
                 headline="Regulatory Uncertainty Clouds Crypto Market Outlook",
                 url="https://example.com/crypto-regs",
-                published_at=datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1),
+                published_at=datetime.datetime.now(datetime.timezone.utc)
+                - datetime.timedelta(days=1),
                 symbols=["BTC/USDT", "ETH/USDT", "XRP/USDT"],
                 summary="Analysts are divided on the impact of upcoming regulations on the broader crypto market.",
             ),

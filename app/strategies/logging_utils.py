@@ -2,15 +2,33 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 _LOG_STD_KEYS = {
-    'name','msg','args','levelname','levelno','pathname','filename','module','exc_info','exc_text',
-    'stack_info','lineno','funcName','created','msecs','relativeCreated','thread','threadName',
-    'processName','process','asctime'
+    "name",
+    "msg",
+    "args",
+    "levelname",
+    "levelno",
+    "pathname",
+    "filename",
+    "module",
+    "exc_info",
+    "exc_text",
+    "stack_info",
+    "lineno",
+    "funcName",
+    "created",
+    "msecs",
+    "relativeCreated",
+    "thread",
+    "threadName",
+    "processName",
+    "process",
+    "asctime",
 }
 
 
@@ -27,7 +45,7 @@ class JsonFormatter(logging.Formatter):
         for k, v in record.__dict__.items():
             if k in _LOG_STD_KEYS:
                 continue
-            if k.startswith('_'):
+            if k.startswith("_"):
                 continue
             # Filter to basic JSON-serializable scalars/containers
             if isinstance(v, (str, int, float, bool)) or v is None:
@@ -72,7 +90,7 @@ def get_json_logger(
 
         if effective_log_path is not None:
             effective_log_path.parent.mkdir(parents=True, exist_ok=True)
-            handler: logging.Handler = logging.FileHandler(effective_log_path, encoding='utf-8')
+            handler: logging.Handler = logging.FileHandler(effective_log_path, encoding="utf-8")
         else:
             handler = logging.StreamHandler()
         handler.setLevel(level)

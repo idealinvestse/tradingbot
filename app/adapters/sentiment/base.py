@@ -25,5 +25,10 @@ class BaseSentimentProvider(ABC):
 
     def get_snapshot(self, pairs: list[str], at: datetime | None = None) -> SentimentSnapshot:
         at = at or datetime.now(timezone.utc)
-        items = [SentimentItem(pair=p, score=float(self.get_score(p, at)), source=self.__class__.__name__, at=at) for p in pairs]
+        items = [
+            SentimentItem(
+                pair=p, score=float(self.get_score(p, at)), source=self.__class__.__name__, at=at
+            )
+            for p in pairs
+        ]
         return SentimentSnapshot(at=at, items=items)

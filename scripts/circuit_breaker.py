@@ -47,12 +47,19 @@ def cmd_status(file_path: Path, correlation_id: str) -> int:
     active = bool(data.get("active"))
     reason = data.get("reason")
     until_iso = data.get("until_iso")
-    logger.info("cb_status", extra={"exists": True, "active": active, "reason": reason, "until_iso": until_iso})
-    print(f"Circuit Breaker: {'ACTIVE' if active else 'inactive'} | reason={reason} | until={until_iso}")
+    logger.info(
+        "cb_status",
+        extra={"exists": True, "active": active, "reason": reason, "until_iso": until_iso},
+    )
+    print(
+        f"Circuit Breaker: {'ACTIVE' if active else 'inactive'} | reason={reason} | until={until_iso}"
+    )
     return 0
 
 
-def cmd_enable(file_path: Path, reason: str, minutes: int | None, until_iso: str | None, correlation_id: str) -> int:
+def cmd_enable(
+    file_path: Path, reason: str, minutes: int | None, until_iso: str | None, correlation_id: str
+) -> int:
     logger = get_json_logger("circuit_breaker", static_fields={"correlation_id": correlation_id})
     file_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -63,7 +70,10 @@ def cmd_enable(file_path: Path, reason: str, minutes: int | None, until_iso: str
     if ui:
         payload["until_iso"] = ui
     file_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    logger.info("cb_enabled", extra={"file": str(file_path), "reason": reason, "until_iso": payload.get("until_iso")})
+    logger.info(
+        "cb_enabled",
+        extra={"file": str(file_path), "reason": reason, "until_iso": payload.get("until_iso")},
+    )
     print(f"Circuit Breaker enabled. File: {file_path}")
     return 0
 
@@ -88,11 +98,28 @@ def cmd_disable(file_path: Path, correlation_id: str) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Circuit Breaker helper")
     parser.add_argument("command", choices=["status", "enable", "disable"], help="Action")
-    parser.add_argument("--state-dir", dest="state_dir", default=str(DEFAULT_STATE_DIR), help="State directory (default: user_data/state)")
-    parser.add_argument("--file", dest="file", default=None, help="Path to circuit_breaker.json (overrides --state-dir)")
+    parser.add_argument(
+        "--state-dir",
+        dest="state_dir",
+        default=str(DEFAULT_STATE_DIR),
+        help="State directory (default: user_data/state)",
+    )
+    parser.add_argument(
+        "--file",
+        dest="file",
+        default=None,
+        help="Path to circuit_breaker.json (overrides --state-dir)",
+    )
     parser.add_argument("--reason", dest="reason", default="manual", help="Reason for enable")
-    parser.add_argument("--minutes", dest="minutes", type=int, default=None, help="Enable duration in minutes")
-    parser.add_argument("--until", dest="until_iso", default=None, help="Enable until ISO timestamp (e.g. 2025-08-17T10:15:00Z)")
+    parser.add_argument(
+        "--minutes", dest="minutes", type=int, default=None, help="Enable duration in minutes"
+    )
+    parser.add_argument(
+        "--until",
+        dest="until_iso",
+        default=None,
+        help="Enable until ISO timestamp (e.g. 2025-08-17T10:15:00Z)",
+    )
 
     args = parser.parse_args()
     cid = uuid.uuid4().hex

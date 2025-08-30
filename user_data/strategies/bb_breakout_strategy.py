@@ -85,11 +85,11 @@ class BollingerBreakoutStrategy(IStrategy):
         df = dataframe.copy()
         width_min = df["bb_width_min"].fillna(method="ffill")
         df["enter_long"] = (
-            (df["close"] > df["bb_upper"]) &
-            (df["bb_width"] > float(self.bb_min_width.value)) &
-            (df["bb_width"] > width_min * float(self.width_expansion_mult.value)) &
-            (df["volume"] > df["volume_mean"] * float(self.vol_mult.value)) &
-            (df["volume_mean"].fillna(0) > 0)
+            (df["close"] > df["bb_upper"])
+            & (df["bb_width"] > float(self.bb_min_width.value))
+            & (df["bb_width"] > width_min * float(self.width_expansion_mult.value))
+            & (df["volume"] > df["volume_mean"] * float(self.vol_mult.value))
+            & (df["volume_mean"].fillna(0) > 0)
         )
         df.loc[df["enter_long"], "enter_tag"] = "bb_breakout"
         return df
@@ -97,10 +97,7 @@ class BollingerBreakoutStrategy(IStrategy):
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         # Exit på mean-reversion eller momentum-avtagande; trailing tar vinster
-        df["exit_long"] = (
-            (df["close"] < df["bb_mid"]) &
-            (df["volume"] > 0)
-        )
+        df["exit_long"] = (df["close"] < df["bb_mid"]) & (df["volume"] > 0)
         df.loc[df["exit_long"], "exit_tag"] = "bb_revert"
         return df
 

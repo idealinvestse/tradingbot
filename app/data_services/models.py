@@ -7,6 +7,7 @@ class NewsArticle:
     """
     Represents a single news article fetched from an external source.
     """
+
     source: str
     headline: str
     url: str

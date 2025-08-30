@@ -28,27 +28,30 @@ class TestRuleBasedModel(unittest.TestCase):
     def _create_dummy_dataframe(self, crossover: bool) -> pd.DataFrame:
         """Creates a dummy dataframe with or without a MA crossover."""
         num_periods = 30
-        dates = pd.to_datetime(pd.date_range(
-            start="2023-01-01", periods=num_periods, freq="5min", tz="UTC"
-        ))
+        dates = pd.to_datetime(
+            pd.date_range(start="2023-01-01", periods=num_periods, freq="5min", tz="UTC")
+        )
 
         if crossover:
             prices = [100] * 28 + [110, 111]
         else:
             prices = [110] * 28 + [100, 99]
 
-        df = pd.DataFrame({'date': dates, 'close': prices})
+        df = pd.DataFrame({"date": dates, "close": prices})
         return df
 
     def _prepare_sentiment_data(self, df: pd.DataFrame, score: float, label: str):
         """Helper to create and insert a news article with a relevant timestamp."""
-        last_candle_time = df.iloc[-1]['date'].to_pydatetime()
+        last_candle_time = df.iloc[-1]["date"].to_pydatetime()
         article_time = last_candle_time - timedelta(minutes=30)
         article = NewsArticle(
-            source="test", headline=f"{label} News", url="http://test.com/1",
+            source="test",
+            headline=f"{label} News",
+            url="http://test.com/1",
             published_at=article_time,
-            symbols=['BTC/USDT'],
-            sentiment_score=score, sentiment_label=label
+            symbols=["BTC/USDT"],
+            sentiment_score=score,
+            sentiment_label=label,
         )
         upsert_news_articles(self.conn, [article])
 
@@ -89,14 +92,15 @@ class TestPlaceholderMLModel(unittest.TestCase):
         """Test that the model simulation works."""
         model = PlaceholderMLModel(model_path="/fake/path/model.pkl")
         self.assertIsNotNone(model.model)
-        self.assertEqual(model.model['name'], 'PlaceholderPredictor')
+        self.assertEqual(model.model["name"], "PlaceholderPredictor")
 
     def test_decide_returns_hold(self):
         """Test that the placeholder always returns a 'hold' decision."""
         model = PlaceholderMLModel(model_path="/fake/path/model.pkl")
-        df = pd.DataFrame({'close': [100, 101]})
+        df = pd.DataFrame({"close": [100, 101]})
         decision = model.decide(df, {})
         self.assertEqual(decision.action, "hold")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

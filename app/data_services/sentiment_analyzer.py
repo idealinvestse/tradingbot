@@ -27,7 +27,14 @@ class DemoSentimentAnalyzer(BaseSentimentAnalyzer):
     A demonstration sentiment analyzer that uses simple keyword matching.
     """
 
-    POSITIVE_KEYWORDS = ["surges", "historic rally", "all-time high", "upgrade", "confidence", "adoption"]
+    POSITIVE_KEYWORDS = [
+        "surges",
+        "historic rally",
+        "all-time high",
+        "upgrade",
+        "confidence",
+        "adoption",
+    ]
     NEGATIVE_KEYWORDS = ["uncertainty", "clouds", "regulatory", "divided", "impact"]
 
     def analyze(self, articles: list[NewsArticle]) -> list[NewsArticle]:
@@ -57,7 +64,7 @@ class DemoSentimentAnalyzer(BaseSentimentAnalyzer):
             article.sentiment_label = label
             logger.debug(
                 f'Analyzed headline "{article.headline[:30]}...": '
-                f'Score={article.sentiment_score}, Label={article.sentiment_label}'
+                f"Score={article.sentiment_score}, Label={article.sentiment_label}"
             )
 
         return articles

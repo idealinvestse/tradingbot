@@ -33,6 +33,25 @@ def _run(
 
     Note: This is a thin wrapper. Callers should pass explicit arguments and avoid shell=True.
     """
+
+
+@dataclass
+class RunResult:
+    returncode: int
+    stdout: str
+    stderr: str
+    correlation_id: str | None = None
+
+
+def _run(
+    cmd: list[str],
+    cwd: Path | None = None,
+    timeout: int | None = None,
+    *,
+    correlation_id: str | None = None,
+    env: dict[str, str] | None = None,
+) -> RunResult:
+    """Execute a command and capture output."""
     logger = get_json_logger(
         "runner",
         static_fields={"correlation_id": correlation_id} if correlation_id else {},
@@ -51,7 +70,6 @@ def _run(
             text=True,
             timeout=timeout,
             env=actual_env,
-            shell=False,
         )
         return RunResult(
             returncode=result.returncode,
@@ -63,8 +81,8 @@ def _run(
         logger.error("command_timeout", extra={"cmd": cmd, "timeout": timeout})
         return RunResult(
             returncode=1,
-            stdout=str(e.stdout or "") if hasattr(e, "stdout") else "",
-            stderr=str(e.stderr or "") if hasattr(e, "stderr") else "",
+            stdout=e.stdout or "" if hasattr(e, "stdout") else "",
+            stderr=e.stderr or "" if hasattr(e, "stderr") else "",
             correlation_id=correlation_id,
         )
     except Exception as e:
@@ -75,8 +93,6 @@ def _run(
             stderr=str(e),
             correlation_id=correlation_id,
         )
-
-
 
 
 async def run_ai_strategies(
@@ -203,17 +219,17 @@ async def run_ai_strategies(
             results = await executor.execute_all_strategies(market_data, context)
 
         # Compile results
-        successful = [r for r in results if not isinstance(r, Exception) and hasattr(r, "success") and r.success]
-        failed = [r for r in results if isinstance(r, Exception) or (hasattr(r, "success") and not r.success)]
+        successful = [r for r in results if not isinstance(r, Exception) and r.success]
+        failed = [r for r in results if isinstance(r, Exception) or not r.success]
 
         # Get execution stats
         stats = executor.get_execution_stats()
 
         # Record metrics
         for result in successful:
-            if hasattr(result, "signal") and result.signal:
+            if result.signal:
                 metrics.record_signal(
-                    strategy_name=getattr(result, "strategy_name", ""),
+                    strategy_name=result.strategy_name,
                     signal=result.signal.dict(),
                     correlation_id=cid,
                 )
@@ -234,19 +250,23 @@ async def run_ai_strategies(
             "total_strategies": len(results),
             "successful": len(successful),
             "failed": len(failed),
-            "signals_generated": sum(1 for r in successful if hasattr(r, "signal") and r.signal),
+            "signals_generated": sum(1 for r in successful if r.signal),
             "execution_stats": stats,
             "results": [
                 {
-                    "strategy": getattr(r, "strategy_name", ""),
-                    "type": getattr(r, "strategy_type", None) if hasattr(r, "strategy_type") else "",
-                    "success": getattr(r, "success", False),
-                    "signal": r.signal.dict() if hasattr(r, "signal") and r.signal is not None else None,
-                    "error": getattr(r, "error", ""),
-                    "execution_time_ms": getattr(r, "execution_time_ms", 0),
+                    "strategy": r.strategy_name,
+                    "type": (
+                        r.strategy_type.value
+                        if hasattr(r.strategy_type, "value")
+                        else str(r.strategy_type)
+                    ),
+                    "success": r.success,
+                    "signal": r.signal.dict() if r.signal else None,
+                    "error": r.error,
+                    "execution_time_ms": r.execution_time_ms,
                 }
                 for r in results
-                if not isinstance(r, Exception) and hasattr(r, "strategy_name")
+                if not isinstance(r, Exception)
             ],
         }
 
@@ -260,59 +280,3 @@ async def run_ai_strategies(
 
     finally:
         rm.release_run_slot(lock_path, correlation_id=cid)
-
-
-def run_live(
-    config_path: Path,
-    strategy: str | None = None,
-    addl_args: list[str] | None = None,
-    open_trades_count: int | None = None,
-    market_exposure_pct: dict[str, float] | None = None,
-    correlation_id: str | None = None,
-) -> RunResult:
-    """Launch freqtrade live with RiskManager guardrails.
-
-    Args:
-        config_path: Path to freqtrade config JSON
-        strategy: Optional strategy class name
-        addl_args: Optional additional arguments to pass to freqtrade
-        open_trades_count: Current open trades count for live guardrails
-        market_exposure_pct: Per-market exposure percentages for live guardrails
-        correlation_id: Optional correlation ID for tracing
-
-    Returns:
-        RunResult with execution results
-    """
-    # Prepare context for risk checks
-    context: dict[str, str | int | float | dict] = {}
-    if open_trades_count is not None:
-        context["open_trades_count"] = open_trades_count
-    if market_exposure_pct is not None:
-        context["market_exposure_pct"] = market_exposure_pct
-
-    # Risk pre-checks for live trading
-    rm = RiskManager()
-    allowed, reason = rm.pre_run_check(
-        kind="live",
-        strategy=strategy or "default",
-        timeframe="5m",
-        context=context,
-        correlation_id=correlation_id,
-    )
-    if not allowed:
-        return RunResult(
-            returncode=1,
-            stdout="",
-            stderr=f"Risk blocked: {reason}",
-            correlation_id=correlation_id,
-        )
-
-    # Build freqtrade command
-    cmd = ["freqtrade", "trade", "--config", str(config_path)]
-    if strategy:
-        cmd.extend(["--strategy", strategy])
-    if addl_args:
-        cmd.extend(addl_args)
-
-    # Execute freqtrade live trading
-    return _run(cmd, cwd=config_path.parent, correlation_id=correlation_id)

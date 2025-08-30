@@ -136,8 +136,12 @@ def main() -> None:
     p_b.add_argument("--logs", action="store_true", help="Include zipped logs in backup")
 
     p_r = sub.add_parser("restore", help="Restore from a given backup directory")
-    p_r.add_argument("src", help="Path to a backup directory (e.g., user_data/backups/backup_YYYYmmdd_HHMMSS)")
-    p_r.add_argument("--only", choices=["registry", "backtests", "hyperopts", "logs"], nargs="*", default=[])
+    p_r.add_argument(
+        "src", help="Path to a backup directory (e.g., user_data/backups/backup_YYYYmmdd_HHMMSS)"
+    )
+    p_r.add_argument(
+        "--only", choices=["registry", "backtests", "hyperopts", "logs"], nargs="*", default=[]
+    )
     p_r.add_argument("--overwrite", action="store_true", help="Overwrite existing files if present")
 
     args = ap.parse_args()

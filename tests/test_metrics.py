@@ -17,7 +17,7 @@ from app.strategies.metrics import (
 def test_parse_zip_metrics() -> None:
     """Test parsing metrics from a Freqtrade backtest ZIP file."""
     # Create a temporary ZIP file with sample data
-    with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp_zip:
+    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp_zip:
         zip_path = Path(tmp_zip.name)
 
     # Sample data that mimics a Freqtrade backtest result
@@ -38,7 +38,7 @@ def test_parse_zip_metrics() -> None:
                 "profit_factor": 1.23456789,
                 "trades_per_day": 5.123456789,
                 "market_change": 0.05123456789,
-                "total_trades": 100
+                "total_trades": 100,
             }
         },
         "strategy_comparison": [
@@ -60,23 +60,23 @@ def test_parse_zip_metrics() -> None:
                 "profit_factor": 1.23456789,
                 "max_drawdown_account": 0.05123456789,
                 "max_drawdown_abs": 5.123456789,
-                "trades": 100
+                "trades": 100,
             }
-        ]
+        ],
     }
 
     # Create a ZIP file with the sample data
-    with zipfile.ZipFile(zip_path, 'w') as zf:
-        zf.writestr('TestStrategy.json', json.dumps(sample_data))
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr("TestStrategy.json", json.dumps(sample_data))
 
     # Parse the metrics
     metrics = _parse_zip_metrics(zip_path)
 
     # Check that we got the expected metrics
-    assert 'profit_total' in metrics
-    assert 'profit_total_abs' in metrics
-    assert 'trades' in metrics
-    assert metrics['trades'] == 100.0
+    assert "profit_total" in metrics
+    assert "profit_total_abs" in metrics
+    assert "trades" in metrics
+    assert metrics["trades"] == 100.0
 
     # Clean up
     zip_path.unlink()
@@ -85,7 +85,7 @@ def test_parse_zip_metrics() -> None:
 def test_parse_zip_metrics_precision() -> None:
     """Test that _parse_zip_metrics maintains precision for monetary values using Decimal."""
     # Create a temporary ZIP file with sample data
-    with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp_zip:
+    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp_zip:
         zip_path = Path(tmp_zip.name)
 
     # Sample data with high precision values
@@ -106,7 +106,7 @@ def test_parse_zip_metrics_precision() -> None:
                 "sqn": 2.123456789,
                 "profit_factor": 1.23456789,
                 "trades_per_day": 5.123456789,
-                "total_trades": 100
+                "total_trades": 100,
             }
         },
         "strategy_comparison": [
@@ -128,30 +128,30 @@ def test_parse_zip_metrics_precision() -> None:
                 "profit_factor": 1.23456789,
                 "max_drawdown_account": 0.05123456789123456789,
                 "max_drawdown_abs": 5.123456789123456789,
-                "trades": 100
+                "trades": 100,
             }
-        ]
+        ],
     }
 
     # Create a ZIP file with the sample data
-    with zipfile.ZipFile(zip_path, 'w') as zf:
-        zf.writestr('TestStrategy.json', json.dumps(sample_data))
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr("TestStrategy.json", json.dumps(sample_data))
 
     # Parse the metrics
     metrics = _parse_zip_metrics(zip_path)
 
     # Check that monetary values are properly quantized
     # Note: We're checking that they're floats (as expected by the DB) but were processed with Decimal precision
-    assert isinstance(metrics['profit_total'], float)
-    assert isinstance(metrics['profit_total_abs'], float)
-    assert isinstance(metrics['profit_mean'], float)
-    assert isinstance(metrics['profit_median'], float)
-    assert isinstance(metrics['cagr'], float)
-    assert isinstance(metrics['expectancy'], float)
-    assert isinstance(metrics['expectancy_ratio'], float)
-    assert isinstance(metrics['market_change'], float)
-    assert isinstance(metrics['max_drawdown_account'], float)
-    assert isinstance(metrics['max_drawdown_abs'], float)
+    assert isinstance(metrics["profit_total"], float)
+    assert isinstance(metrics["profit_total_abs"], float)
+    assert isinstance(metrics["profit_mean"], float)
+    assert isinstance(metrics["profit_median"], float)
+    assert isinstance(metrics["cagr"], float)
+    assert isinstance(metrics["expectancy"], float)
+    assert isinstance(metrics["expectancy_ratio"], float)
+    assert isinstance(metrics["market_change"], float)
+    assert isinstance(metrics["max_drawdown_account"], float)
+    assert isinstance(metrics["max_drawdown_abs"], float)
 
     # Clean up
     zip_path.unlink()
@@ -162,18 +162,20 @@ def test_upsert_metric_decimal_precision() -> None:
     import sqlite3
 
     # Create an in-memory database for testing
-    conn = sqlite3.connect(':memory:')
+    conn = sqlite3.connect(":memory:")
     cur = conn.cursor()
 
     # Create the metrics table
-    cur.execute('''
+    cur.execute(
+        """
         CREATE TABLE metrics (
             run_id TEXT,
             key TEXT,
             value REAL,
             PRIMARY KEY (run_id, key)
         )
-    ''')
+    """
+    )
 
     # Test with a high precision decimal value
     run_id = "test_run"
@@ -195,7 +197,7 @@ def test_upsert_metric_decimal_precision() -> None:
     # Check that the value is quantized to 8 decimal places
     # Convert to Decimal to check precision
     decimal_result = Decimal(str(result[0]))
-    assert decimal_result == Decimal('0.12345679')  # Should be rounded to 8 decimal places
+    assert decimal_result == Decimal("0.12345679")  # Should be rounded to 8 decimal places
 
     # Test with negative value
     negative_value = -0.9876543210987654321
@@ -209,10 +211,11 @@ def test_upsert_metric_decimal_precision() -> None:
 
     # Check that the negative value is quantized correctly
     decimal_neg_result = Decimal(str(neg_result[0]))
-    assert decimal_neg_result == Decimal('-0.98765432')  # Should be rounded to 8 decimal places
+    assert decimal_neg_result == Decimal("-0.98765432")  # Should be rounded to 8 decimal places
 
     # Clean up
     conn.close()
+
 
 def test_validate_backtest_payload() -> None:
     """Test validating backtest payload."""
@@ -221,7 +224,7 @@ def test_validate_backtest_payload() -> None:
         "run_id": "test_run",
         "timeframe": "5m",
         "backtest_start_ts": 1640995200,
-        "backtest_end_ts": 1641081600
+        "backtest_end_ts": 1641081600,
     }
 
     is_valid, reason = _validate_backtest_payload(valid_payload)
@@ -229,9 +232,7 @@ def test_validate_backtest_payload() -> None:
     assert reason is None
 
     # Invalid payload - wrong type
-    invalid_payload = {
-        "backtest_start_ts": "not_a_number"
-    }
+    invalid_payload = {"backtest_start_ts": "not_a_number"}
 
     is_valid, reason = _validate_backtest_payload(invalid_payload)
     assert not is_valid
@@ -243,13 +244,8 @@ def test_validate_hyperopt_trial() -> None:
     # Valid trial
     valid_trial = {
         "loss": 0.123,
-        "params_dict": {
-            "param1": 1.0,
-            "param2": 2.0
-        },
-        "results_metrics": {
-            "trades": [1, 2, 3]
-        }
+        "params_dict": {"param1": 1.0, "param2": 2.0},
+        "results_metrics": {"trades": [1, 2, 3]},
     }
 
     is_valid = _validate_hyperopt_trial(valid_trial)

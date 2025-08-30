@@ -3,13 +3,13 @@ from __future__ import annotations
 import io
 import json
 import logging
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 import pytest
 
 
-def _make_stream_adapter(stream: io.StringIO, static_fields: Dict[str, Any] | None = None):
+def _make_stream_adapter(stream: io.StringIO, static_fields: dict[str, Any] | None = None):
     logger = logging.getLogger("strategy-test")
     logger.setLevel(logging.INFO)
     # fresh handler for each test

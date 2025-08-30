@@ -10,6 +10,7 @@ from pathlib import Path
 def project_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
+
 _ROOT = project_root()
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
@@ -54,7 +55,9 @@ def main() -> None:
         help="SQLite DB path",
     )
 
-    p_hopt = sub.add_parser("index-hyperopts", help="Parse hyperopt .fthypt and index into SQLite DB")
+    p_hopt = sub.add_parser(
+        "index-hyperopts", help="Parse hyperopt .fthypt and index into SQLite DB"
+    )
     p_hopt.add_argument(
         "--dir",
         default=str(project_root() / "user_data" / "hyperopt_results"),

@@ -20,7 +20,9 @@ class DcaPlan:
     orders: list[DcaOrder]
 
 
-def build_dca_plan(start: datetime, end: datetime, interval: str, pair: str, amount: float) -> DcaPlan:
+def build_dca_plan(
+    start: datetime, end: datetime, interval: str, pair: str, amount: float
+) -> DcaPlan:
     delta_map = {
         "daily": timedelta(days=1),
         "weekly": timedelta(weeks=1),
@@ -49,7 +51,9 @@ def save_plan_csv(plan: DcaPlan, out_path: Path) -> None:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="DCA scheduler: generates a CSV buy plan from a JSON config.")
+    p = argparse.ArgumentParser(
+        description="DCA scheduler: generates a CSV buy plan from a JSON config."
+    )
     p.add_argument("--config", required=True, help="Path to DCA config JSON")
     p.add_argument("--out", required=True, help="Path to output CSV plan")
     args = p.parse_args()

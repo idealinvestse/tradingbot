@@ -13,6 +13,7 @@ def utcnow_iso() -> str:
 
 # --- Registry core models ---
 
+
 @dataclass
 class StrategySpec:
     id: str
@@ -69,6 +70,7 @@ class SourceSpec:
 
 
 # --- Ideation and experiment models ---
+
 
 @dataclass
 class Idea:

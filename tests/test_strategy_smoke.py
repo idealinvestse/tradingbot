@@ -14,7 +14,9 @@ def test_strategy_loads():
     except ModuleNotFoundError as e:
         # Allow local test runs without heavy deps; container handles deps.
         if ("freqtrade" in str(e)) or ("pandas" in str(e)) or ("numpy" in str(e)):
-            pytest.skip("dependency missing locally (freqtrade/pandas/numpy); skipping strategy import")
+            pytest.skip(
+                "dependency missing locally (freqtrade/pandas/numpy); skipping strategy import"
+            )
         raise
     assert hasattr(module, "MaCrossoverStrategy")
     # Provide minimal config for IStrategy
@@ -32,7 +34,9 @@ def test_momentum_macd_rsi_loads():
         spec.loader.exec_module(module)  # type: ignore[union-attr]
     except ModuleNotFoundError as e:
         if ("freqtrade" in str(e)) or ("pandas" in str(e)) or ("numpy" in str(e)):
-            pytest.skip("dependency missing locally (freqtrade/pandas/numpy); skipping strategy import")
+            pytest.skip(
+                "dependency missing locally (freqtrade/pandas/numpy); skipping strategy import"
+            )
         raise
     assert hasattr(module, "MomentumMacdRsiStrategy")
     # Provide minimal config for IStrategy
@@ -50,7 +54,9 @@ def test_bb_breakout_loads():
         spec.loader.exec_module(module)  # type: ignore[union-attr]
     except ModuleNotFoundError as e:
         if ("freqtrade" in str(e)) or ("pandas" in str(e)) or ("numpy" in str(e)):
-            pytest.skip("dependency missing locally (freqtrade/pandas/numpy); skipping strategy import")
+            pytest.skip(
+                "dependency missing locally (freqtrade/pandas/numpy); skipping strategy import"
+            )
         raise
     assert hasattr(module, "BollingerBreakoutStrategy")
     # Provide minimal config for IStrategy
@@ -68,7 +74,9 @@ def test_wma_stoch_swing_loads():
         spec.loader.exec_module(module)  # type: ignore[union-attr]
     except ModuleNotFoundError as e:
         if ("freqtrade" in str(e)) or ("pandas" in str(e)) or ("numpy" in str(e)):
-            pytest.skip("dependency missing locally (freqtrade/pandas/numpy); skipping strategy import")
+            pytest.skip(
+                "dependency missing locally (freqtrade/pandas/numpy); skipping strategy import"
+            )
         raise
     assert hasattr(module, "WmaStochSwingStrategy")
     # Provide minimal config for IStrategy

@@ -40,8 +40,14 @@ def test_drawdown_blocks(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Non
     _init_db(db)
     con = sqlite3.connect(db)
     cur = con.cursor()
-    cur.execute("INSERT INTO runs(id, experiment_id, kind, started_utc) VALUES (?,?,?,?)", ("r1", "e1", "backtest", "2025-08-17T00:00:00Z"))
-    cur.execute("INSERT INTO metrics(run_id, key, value) VALUES (?,?,?)", ("r1", "max_drawdown_account", 25.0))
+    cur.execute(
+        "INSERT INTO runs(id, experiment_id, kind, started_utc) VALUES (?,?,?,?)",
+        ("r1", "e1", "backtest", "2025-08-17T00:00:00Z"),
+    )
+    cur.execute(
+        "INSERT INTO metrics(run_id, key, value) VALUES (?,?,?)",
+        ("r1", "max_drawdown_account", 25.0),
+    )
     con.commit()
     con.close()
 
@@ -49,18 +55,28 @@ def test_drawdown_blocks(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Non
     monkeypatch.setenv("RISK_MAX_BACKTEST_DRAWDOWN_PCT", "0.2")
 
     rm = RiskManager()
-    allowed, reason = rm.pre_run_check(kind="backtest", strategy="S", timeframe=None, context=None, correlation_id=None)
+    allowed, reason = rm.pre_run_check(
+        kind="backtest", strategy="S", timeframe=None, context=None, correlation_id=None
+    )
     assert not allowed
     assert reason and "recent_drawdown_exceeded" in reason
 
 
-def test_drawdown_allows_when_within_threshold(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_drawdown_allows_when_within_threshold(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     db = tmp_path / "registry.sqlite"
     _init_db(db)
     con = sqlite3.connect(db)
     cur = con.cursor()
-    cur.execute("INSERT INTO runs(id, experiment_id, kind, started_utc) VALUES (?,?,?,?)", ("r1", "e1", "backtest", "2025-08-17T00:00:00Z"))
-    cur.execute("INSERT INTO metrics(run_id, key, value) VALUES (?,?,?)", ("r1", "max_drawdown_account", 0.1))
+    cur.execute(
+        "INSERT INTO runs(id, experiment_id, kind, started_utc) VALUES (?,?,?,?)",
+        ("r1", "e1", "backtest", "2025-08-17T00:00:00Z"),
+    )
+    cur.execute(
+        "INSERT INTO metrics(run_id, key, value) VALUES (?,?,?)",
+        ("r1", "max_drawdown_account", 0.1),
+    )
     con.commit()
     con.close()
 
@@ -68,6 +84,8 @@ def test_drawdown_allows_when_within_threshold(monkeypatch: pytest.MonkeyPatch, 
     monkeypatch.setenv("RISK_MAX_BACKTEST_DRAWDOWN_PCT", "0.2")
 
     rm = RiskManager()
-    allowed, reason = rm.pre_run_check(kind="backtest", strategy="S", timeframe=None, context=None, correlation_id=None)
+    allowed, reason = rm.pre_run_check(
+        kind="backtest", strategy="S", timeframe=None, context=None, correlation_id=None
+    )
     assert allowed
     assert reason is None

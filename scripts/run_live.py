@@ -39,12 +39,25 @@ Notes:
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description="Launch freqtrade live with RiskManager guardrails", epilog=essential,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--config", required=True, help="Path to freqtrade config JSON (e.g., user_data/configs/config.mainnet.json)")
+    p = argparse.ArgumentParser(
+        description="Launch freqtrade live with RiskManager guardrails",
+        epilog=essential,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument(
+        "--config",
+        required=True,
+        help="Path to freqtrade config JSON (e.g., user_data/configs/config.mainnet.json)",
+    )
     p.add_argument("--strategy", help="Strategy class name (optional, can be in config)")
-    p.add_argument("--open-trades", type=int, dest="open_trades", help="Currently open trades count")
-    p.add_argument("--exposure", action="append", help="Per-market exposure e.g. BTC/USDT=25% or ETH/USDT=0.15 (repeatable)")
+    p.add_argument(
+        "--open-trades", type=int, dest="open_trades", help="Currently open trades count"
+    )
+    p.add_argument(
+        "--exposure",
+        action="append",
+        help="Per-market exposure e.g. BTC/USDT=25% or ETH/USDT=0.15 (repeatable)",
+    )
     p.add_argument("--extra", action="append", help="Extra args passed to freqtrade (repeatable)")
     p.add_argument("--correlation-id", dest="cid", help="Optional correlation id for logs")
 

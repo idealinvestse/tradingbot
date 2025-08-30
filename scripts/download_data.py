@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import argparse
-import json
 import shlex
 import subprocess
 import sys
-from pathlib import Path
-from typing import List
 
 from app.strategies.logging_utils import get_json_logger
 
@@ -14,8 +11,8 @@ from app.strategies.logging_utils import get_json_logger
 def download_data(
     *,
     exchange: str = "binance",
-    pairs: List[str] | None = None,
-    timeframes: List[str] | None = None,
+    pairs: list[str] | None = None,
+    timeframes: list[str] | None = None,
     days: int = 30,
     include_inactive: bool = False,
 ) -> int:
@@ -56,8 +53,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Download historical data via Freqtrade.")
     parser.add_argument("--exchange", default="binance")
     parser.add_argument("--days", type=int, default=30)
-    parser.add_argument("--timeframes", nargs="+", default=["1m", "5m"]) 
-    parser.add_argument("--pairs", nargs="+", default=["BTC/USDT", "ETH/USDT"]) 
+    parser.add_argument("--timeframes", nargs="+", default=["1m", "5m"])
+    parser.add_argument("--pairs", nargs="+", default=["BTC/USDT", "ETH/USDT"])
     parser.add_argument("--include-inactive", action="store_true")
     args = parser.parse_args()
 

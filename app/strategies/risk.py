@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Any
 
 from .logging_utils import get_json_logger
-from .persistence.sqlite import connect as sqlite_connect, ensure_schema as sqlite_ensure_schema
+from .persistence.sqlite import connect as sqlite_connect
+from .persistence.sqlite import ensure_schema as sqlite_ensure_schema
 
 
 @dataclass
@@ -45,7 +46,10 @@ class RiskManager:
     def __init__(self, config: RiskConfig | None = None) -> None:
         logger = get_json_logger("risk", static_fields={"op": "__init__"})
         self.cfg = config or self._load_from_env()
-        logger.debug("risk_manager_initialized", extra={k: str(v) for k, v in self.cfg.__dict__.items() if v is not None})
+        logger.debug(
+            "risk_manager_initialized",
+            extra={k: str(v) for k, v in self.cfg.__dict__.items() if v is not None},
+        )
 
     def _load_from_env(self) -> RiskConfig:
         logger = get_json_logger("risk", static_fields={"op": "_load_from_env"})
@@ -81,7 +85,9 @@ class RiskManager:
             max_dd = None
         logger.debug("loaded_max_backtest_drawdown_pct", extra={"value": max_dd})
 
-        db_path = Path(os.getenv("RISK_DB_PATH", str(user_data / "registry" / "strategies_registry.sqlite")))
+        db_path = Path(
+            os.getenv("RISK_DB_PATH", str(user_data / "registry" / "strategies_registry.sqlite"))
+        )
         logger.debug("loaded_db_path", extra={"value": db_path})
 
         # Live guardrails
@@ -147,38 +153,40 @@ class RiskManager:
         if active and not self.cfg.allow_run_when_cb:
             logger.warning("circuit_breaker_block", extra={"reason": reason})
             return False, f"circuit_breaker_active: {reason or ''}"
-        
+
         # Continue with other checks
         return self._continue_pre_run_check(kind, context, correlation_id)
-    
+
     def check_risk_limits(self) -> bool:
         """Check if risk limits allow trading.
-        
+
         Simple check for AI strategy executor compatibility.
         Returns True if trading is allowed.
         """
         logger = get_json_logger("risk", static_fields={"op": "check_risk_limits"})
-        
+
         # Check circuit breaker
         active, reason = self._circuit_breaker_active()
         if active and not self.cfg.allow_run_when_cb:
             logger.warning("risk_limits_exceeded", extra={"reason": f"circuit_breaker: {reason}"})
             return False
-        
+
         # For now, allow trading if circuit breaker is not active
         logger.debug("risk_limits_ok")
         return True
-    
-    def _continue_pre_run_check(self, kind: str, context: dict[str, Any] | None, correlation_id: str | None) -> tuple[bool, str | None]:
+
+    def _continue_pre_run_check(
+        self, kind: str, context: dict[str, Any] | None, correlation_id: str | None
+    ) -> tuple[bool, str | None]:
         """Continue pre_run_check after circuit breaker check.
-        
+
         This method contains the rest of pre_run_check logic.
         """
         logger = get_json_logger(
             "risk",
             static_fields={"correlation_id": correlation_id} if correlation_id else None,
         )
-        
+
         # Optional: block backtests if recent drawdown exceeded threshold
         if kind == "backtest" and self.cfg.max_backtest_drawdown_pct is not None:
             logger.debug("checking_recent_drawdown")
@@ -197,13 +205,21 @@ class RiskManager:
             if self.cfg.live_max_concurrent_trades is not None:
                 open_trades = None
                 if context and isinstance(context.get("open_trades_count"), (int, float)):
-                    open_trades = int(context["open_trades_count"])  # type: ignore[index]
-                if open_trades is not None and open_trades >= max(0, self.cfg.live_max_concurrent_trades):
+                    open_trades = int(context["open_trades_count"])
+                if open_trades is not None and open_trades >= max(
+                    0, self.cfg.live_max_concurrent_trades
+                ):
                     logger.warning(
                         "live_concurrent_trades_block",
-                        extra={"open_trades": open_trades, "max": self.cfg.live_max_concurrent_trades},
+                        extra={
+                            "open_trades": open_trades,
+                            "max": self.cfg.live_max_concurrent_trades,
+                        },
                     )
-                    return False, f"live_concurrent_trades_exceeded: {open_trades}/{self.cfg.live_max_concurrent_trades}"
+                    return (
+                        False,
+                        f"live_concurrent_trades_exceeded: {open_trades}/{self.cfg.live_max_concurrent_trades}",
+                    )
 
             # per-market exposure cap
             if self.cfg.live_max_per_market_exposure_pct is not None:
@@ -212,7 +228,7 @@ class RiskManager:
                     threshold = threshold / 100.0
                 exposures = None
                 if context and isinstance(context.get("market_exposure_pct"), dict):
-                    exposures = context.get("market_exposure_pct")  # type: ignore[assignment]
+                    exposures = context.get("market_exposure_pct")
                 if exposures:
                     # Any market exceeding threshold blocks
                     for mkt, val in exposures.items():
@@ -257,7 +273,9 @@ class RiskManager:
             return False, f"too_many_active_{kind}s: {count}/{max_slots}", None
 
         lock = self._create_lock(kind, correlation_id)
-        logger.info("slot_acquired", extra={"kind": kind, "active_before": count, "lock": str(lock)})
+        logger.info(
+            "slot_acquired", extra={"kind": kind, "active_before": count, "lock": str(lock)}
+        )
         return True, None, lock
 
     def release_run_slot(self, lock_path: Path | None, *, correlation_id: str | None) -> None:
@@ -268,7 +286,7 @@ class RiskManager:
         if lock_path is None:
             return
         try:
-            lock_path.unlink(missing_ok=True)  # type: ignore[arg-type]
+            lock_path.unlink(missing_ok=True)
             logger.info("slot_released", extra={"lock": str(lock_path)})
         except Exception:
             logger.warning("slot_release_error", extra={"lock": str(lock_path)})
@@ -318,7 +336,10 @@ class RiskManager:
 
             if age > ttl:
                 # Stale lock found, attempt to clean up and skip.
-                logger.debug("stale_lock_cleanup", extra={"lock_file": str(p), "age_sec": age, "ttl_sec": ttl})
+                logger.debug(
+                    "stale_lock_cleanup",
+                    extra={"lock_file": str(p), "age_sec": age, "ttl_sec": ttl},
+                )
                 try:
                     p.unlink()
                 except OSError as e:
@@ -329,10 +350,16 @@ class RiskManager:
             active_locks += 1
         return active_locks
 
-    def _circuit_breaker_active(self, *, correlation_id: str | None = None) -> tuple[bool, str | None]:
+    def _circuit_breaker_active(
+        self, *, correlation_id: str | None = None
+    ) -> tuple[bool, str | None]:
         logger = get_json_logger(
             "risk",
-            static_fields={"correlation_id": correlation_id, "op": "_circuit_breaker_active"} if correlation_id else {"op": "_circuit_breaker_active"},
+            static_fields=(
+                {"correlation_id": correlation_id, "op": "_circuit_breaker_active"}
+                if correlation_id
+                else {"op": "_circuit_breaker_active"}
+            ),
         )
         cb = self.cfg.circuit_breaker_file
         logger.debug("cb_check", extra={"cb_file": str(cb)})
@@ -367,7 +394,11 @@ class RiskManager:
         """Return most recent backtest 'max_drawdown_account' metric if available."""
         logger = get_json_logger(
             "risk",
-            static_fields={"correlation_id": correlation_id, "op": "_recent_backtest_drawdown"} if correlation_id else {"op": "_recent_backtest_drawdown"},
+            static_fields=(
+                {"correlation_id": correlation_id, "op": "_recent_backtest_drawdown"}
+                if correlation_id
+                else {"op": "_recent_backtest_drawdown"}
+            ),
         )
         db = self.cfg.db_path
         if not db or not db.exists():
@@ -451,7 +482,10 @@ class RiskManager:
         # Persist the incident if DB configured
         db = self.cfg.db_path
         if not db:
-            logger.info("incident_db_skipped", extra={"incident_id": incident_id, "reason": "no_db_configured"})
+            logger.info(
+                "incident_db_skipped",
+                extra={"incident_id": incident_id, "reason": "no_db_configured"},
+            )
             return
 
         try:
@@ -478,4 +512,6 @@ class RiskManager:
             con.close()
             logger.info("incident_stored", extra={"incident_id": incident_id})
         except Exception as e:
-            logger.error("incident_store_error", extra={"incident_id": incident_id, "error": str(e)})
+            logger.error(
+                "incident_store_error", extra={"incident_id": incident_id, "error": str(e)}
+            )

@@ -84,7 +84,9 @@ def parse_strategy_file(path: Path) -> list[StrategyInfo]:
                     # timeframe = "5m"
                     for target in stmt.targets:
                         if isinstance(target, ast.Name) and target.id == "timeframe":
-                            if isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
+                            if isinstance(stmt.value, ast.Constant) and isinstance(
+                                stmt.value.value, str
+                            ):
                                 timeframe = stmt.value.value
 
                     # parameter = <Something>Parameter(...)

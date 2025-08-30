@@ -76,7 +76,9 @@ class BreakoutBbVolStrategy(IStrategy):
         # Volym medel och spike
         vw = int(self.vol_window.value)
         df["volume_mean"] = df["volume"].rolling(vw, min_periods=vw).mean()
-        df["vol_spike"] = df["volume"] > (float(self.vol_spike_mult.value) * df["volume_mean"])  # boolean
+        df["vol_spike"] = df["volume"] > (
+            float(self.vol_spike_mult.value) * df["volume_mean"]
+        )  # boolean
 
         # ATR (14)
         atr_n = 14
@@ -91,10 +93,10 @@ class BreakoutBbVolStrategy(IStrategy):
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         df["enter_long"] = (
-            (df["close"] > df["dc_high"].shift(1)) &  # bryt förbi tidigare max
-            (df["bb_width"] > float(self.bb_width_min.value)) &
-            (df["vol_spike"]) &
-            (df["volume"] > 0)
+            (df["close"] > df["dc_high"].shift(1))  # bryt förbi tidigare max
+            & (df["bb_width"] > float(self.bb_width_min.value))
+            & (df["vol_spike"])
+            & (df["volume"] > 0)
         )
         df.loc[df["enter_long"], "enter_tag"] = "breakout_bb_vol"
         return df
@@ -102,10 +104,7 @@ class BreakoutBbVolStrategy(IStrategy):
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         df = dataframe.copy()
         # Enkel exit: close under BB-upper efter breakout (svaghet) – trailing hanterar vinster
-        df["exit_long"] = (
-            (df["close"] < df["bb_upper"].shift(1)) &
-            (df["volume"] > 0)
-        )
+        df["exit_long"] = (df["close"] < df["bb_upper"].shift(1)) & (df["volume"] > 0)
         df.loc[df["exit_long"], "exit_tag"] = "breakout_weakness"
         return df
 

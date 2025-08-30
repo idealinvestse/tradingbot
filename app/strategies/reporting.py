@@ -27,9 +27,13 @@ def generate_markdown(registry: dict[str, Any]) -> str:
     Uses UTC for timestamp if registry lacks updated_utc.
     """
     cid = uuid.uuid4().hex
-    logger = get_json_logger("reporting", static_fields={"correlation_id": cid, "op": "generate_markdown"})
+    logger = get_json_logger(
+        "reporting", static_fields={"correlation_id": cid, "op": "generate_markdown"}
+    )
     logger.info("start", extra={"strategy_count": len(registry.get("strategies", []))})
-    updated = registry.get("updated_utc") or datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    updated = registry.get("updated_utc") or datetime.now(tz=timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
 
     lines: list[str] = []
     lines.append("# Strategier, metoder och koncept – Registry")
@@ -40,7 +44,9 @@ def generate_markdown(registry: dict[str, Any]) -> str:
     # Strategies table
     lines.append("## Strategier")
     lines.append("")
-    lines.append("| ID | Namn | Klass | Fil | Status | Timeframes | Marknader | Indikatorer | Taggar |")
+    lines.append(
+        "| ID | Namn | Klass | Fil | Status | Timeframes | Marknader | Indikatorer | Taggar |"
+    )
     lines.append("|---|---|---|---|---|---|---|---|---|")
     for s in registry.get("strategies", []):
         lines.append(
@@ -126,7 +132,9 @@ def generate_markdown(registry: dict[str, Any]) -> str:
     lines.append("")
 
     out = "\n".join(lines) + "\n"
-    logger.info("done", extra={"lines_generated": len(lines), "output_bytes": len(out)}) # Added output_bytes
+    logger.info(
+        "done", extra={"lines_generated": len(lines), "output_bytes": len(out)}
+    )  # Added output_bytes
     return out
 
 
@@ -136,7 +144,9 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
     Shows latest runs ordered by finished_utc (desc) with selected metrics.
     """
     cid = uuid.uuid4().hex
-    logger = get_json_logger("reporting", static_fields={"correlation_id": cid, "op": "results_report"})
+    logger = get_json_logger(
+        "reporting", static_fields={"correlation_id": cid, "op": "results_report"}
+    )
     logger.info("start", extra={"db_path": str(db_path), "limit": limit})
     keys = [
         "profit_total",
@@ -160,9 +170,9 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
         result = {}
         for k, v in cur.fetchall():
             # For monetary values, use Decimal for better precision
-            monetary_keys = ('profit_total', 'profit_total_abs', 'max_drawdown_abs')
+            monetary_keys = ("profit_total", "profit_total_abs", "max_drawdown_abs")
             if k in monetary_keys:
-                decimal_v = Decimal(str(v)).quantize(Decimal('0.00000001'))
+                decimal_v = Decimal(str(v)).quantize(Decimal("0.00000001"))
                 result[k] = float(decimal_v)
             else:
                 result[k] = float(v)
@@ -181,7 +191,10 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
     run_cols = {r[1] for r in cur.fetchall()}  # type: ignore[index]
     cur.execute("PRAGMA table_info(experiments)")
     exp_cols = {r[1] for r in cur.fetchall()}  # type: ignore[index]
-    logger.debug("db_schema_info", extra={"run_columns": list(run_cols), "experiment_columns": list(exp_cols)})
+    logger.debug(
+        "db_schema_info",
+        extra={"run_columns": list(run_cols), "experiment_columns": list(exp_cols)},
+    )
 
     # Always select the core columns; we'll fetch optional fields per-row later
     cur.execute(
@@ -218,7 +231,10 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
     run_cols = {r[1] for r in cur.fetchall()}  # type: ignore[index]
     cur.execute("PRAGMA table_info(experiments)")
     exp_cols = {r[1] for r in cur.fetchall()}  # type: ignore[index]
-    logger.debug("db_schema_info", extra={"run_columns": list(run_cols), "experiment_columns": list(exp_cols)})
+    logger.debug(
+        "db_schema_info",
+        extra={"run_columns": list(run_cols), "experiment_columns": list(exp_cols)},
+    )
     for rid, exp, kind, started, finished, status in rows:
         mmap = _mmap(cur, rid)
         vals = [mmap.get(k, None) for k in keys]
@@ -231,7 +247,9 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
                 dw_row = cur.fetchone()
                 if dw_row and dw_row[0]:
                     data_window = str(dw_row[0])
-                    logger.debug("found_data_window", extra={"run_id": rid, "data_window": data_window})
+                    logger.debug(
+                        "found_data_window", extra={"run_id": rid, "data_window": data_window}
+                    )
             except Exception as e:
                 logger.warning("data_window_fetch_failed", extra={"run_id": rid, "error": str(e)})
                 data_window = "-"
@@ -243,9 +261,15 @@ def generate_results_markdown_from_db(db_path: Path, limit: int = 20) -> str:
                 ch_row = cur.fetchone()
                 if ch_row and ch_row[0]:
                     config_hash = str(ch_row[0])
-                    logger.debug("found_config_hash", extra={"run_id": rid, "experiment_id": exp, "config_hash": config_hash})
+                    logger.debug(
+                        "found_config_hash",
+                        extra={"run_id": rid, "experiment_id": exp, "config_hash": config_hash},
+                    )
             except Exception as e:
-                logger.warning("config_hash_fetch_failed", extra={"run_id": rid, "experiment_id": exp, "error": str(e)})
+                logger.warning(
+                    "config_hash_fetch_failed",
+                    extra={"run_id": rid, "experiment_id": exp, "error": str(e)},
+                )
                 config_hash = "-"
         lines.append(
             "| "

@@ -6,18 +6,18 @@ from pathlib import Path
 
 def fix_runner_syntax():
     """Remove orphaned function parameters causing syntax error"""
-    
+
     runner_path = Path("app/strategies/runner.py")
-    
-    with open(runner_path, "r", encoding="utf-8") as f:
+
+    with open(runner_path, encoding="utf-8") as f:
         lines = f.readlines()
-    
+
     # Find and remove orphaned parameters (lines 813-831)
     new_lines = []
     skip_mode = False
     skip_start_line = 812  # 0-indexed
-    skip_end_line = 836    # 0-indexed
-    
+    skip_end_line = 836  # 0-indexed
+
     for i, line in enumerate(lines):
         # Check if we're in the problematic section
         if i == skip_start_line and "symbol: str" in line:
@@ -33,27 +33,28 @@ def fix_runner_syntax():
                 continue
             else:
                 continue  # Skip this line
-        
+
         # Add normal lines
         if not skip_mode:
             new_lines.append(line)
-    
+
     # Write back the fixed content
     with open(runner_path, "w", encoding="utf-8") as f:
         f.writelines(new_lines)
-    
+
     print(f"Fixed {runner_path}")
-    print(f"Removed orphaned function parameters")
-    
+    print("Removed orphaned function parameters")
+
     # Verify the file is syntactically correct
     import py_compile
+
     try:
         py_compile.compile(str(runner_path), doraise=True)
         print("✓ Syntax check passed!")
     except py_compile.PyCompileError as e:
         print(f"✗ Syntax error remains: {e}")
         return False
-    
+
     return True
 
 

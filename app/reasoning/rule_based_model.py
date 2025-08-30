@@ -35,9 +35,7 @@ class RuleBasedModel(BaseReasoningModel):
 
     def _get_average_sentiment(self, current_time_utc: datetime) -> float:
         """Fetches news and calculates average sentiment over a lookback period."""
-        lookback_start_utc = current_time_utc - timedelta(
-            hours=self.sentiment_lookback_hours
-        )
+        lookback_start_utc = current_time_utc - timedelta(hours=self.sentiment_lookback_hours)
         try:
             articles = get_news_articles_in_range(
                 self.db_conn, lookback_start_utc, current_time_utc
@@ -45,11 +43,7 @@ class RuleBasedModel(BaseReasoningModel):
             if not articles:
                 return 0.0  # Neutral sentiment if no news
 
-            scores = [
-                a["sentiment_score"]
-                for a in articles
-                if a["sentiment_score"] is not None
-            ]
+            scores = [a["sentiment_score"] for a in articles if a["sentiment_score"] is not None]
             return sum(scores) / len(scores) if scores else 0.0
 
         except Exception as e:
@@ -67,7 +61,7 @@ class RuleBasedModel(BaseReasoningModel):
         slow_ma_series = qtpylib.sma(dataframe["close"], self.slow_ma)
 
         # Relaxed TA condition for integration tests: require fast MA above slow MA
-        ma_is_above = (fast_ma_series.iloc[-1] > slow_ma_series.iloc[-1])
+        ma_is_above = fast_ma_series.iloc[-1] > slow_ma_series.iloc[-1]
         ta_ok = bool(ma_is_above)
 
         # --- Debug Logging ---
@@ -83,7 +77,7 @@ class RuleBasedModel(BaseReasoningModel):
         # 3. Combine signals for a final decision
         if ta_ok and sentiment_ok:
             reason = f"MA above slow confirmed by positive sentiment (score: {avg_sentiment:.2f})"
-            return Decision(action="buy", reason=reason, metadata={'sentiment': avg_sentiment})
+            return Decision(action="buy", reason=reason, metadata={"sentiment": avg_sentiment})
 
         # For this simple model, we don't define a sell signal, relying on ROI/stoploss.
         # A more complex model could return a 'sell' decision here.

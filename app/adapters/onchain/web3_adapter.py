@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import random
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -19,8 +19,12 @@ class Web3Config(BaseModel):
     provider_url: str = Field(default_factory=lambda: os.getenv("WEB3_PROVIDER_URL", ""))
     timeout_sec: float = Field(default_factory=lambda: float(os.getenv("WEB3_TIMEOUT_SEC", "10")))
     max_retries: int = Field(default_factory=lambda: int(os.getenv("WEB3_MAX_RETRIES", "3")))
-    retry_backoff_base_sec: float = Field(default_factory=lambda: float(os.getenv("WEB3_BACKOFF_BASE_SEC", "0.5")))
-    retry_jitter_sec: float = Field(default_factory=lambda: float(os.getenv("WEB3_BACKOFF_JITTER_SEC", "0.2")))
+    retry_backoff_base_sec: float = Field(
+        default_factory=lambda: float(os.getenv("WEB3_BACKOFF_BASE_SEC", "0.5"))
+    )
+    retry_jitter_sec: float = Field(
+        default_factory=lambda: float(os.getenv("WEB3_BACKOFF_JITTER_SEC", "0.2"))
+    )
 
 
 class OnchainClient:
@@ -30,10 +34,10 @@ class OnchainClient:
     - Provides get_tx_count(address) with retries and jittered backoff.
     """
 
-    def __init__(self, cfg: Optional[Web3Config] = None, w3: Any | None = None) -> None:
+    def __init__(self, cfg: Web3Config | None = None, w3: Any | None = None) -> None:
         self.cfg = cfg or Web3Config()
         self._logger = get_json_logger("onchain", static_fields={"component": "onchain"})
-        self._cache: Dict[str, int] = {}
+        self._cache: dict[str, int] = {}
 
         if w3 is not None:
             self.w3 = w3
@@ -48,7 +52,9 @@ class OnchainClient:
             # Allow caller to handle missing dependency gracefully
             raise RuntimeError(f"web3 import failed: {e}")
 
-        self.w3 = Web3(HTTPProvider(self.cfg.provider_url, request_kwargs={"timeout": self.cfg.timeout_sec}))
+        self.w3 = Web3(
+            HTTPProvider(self.cfg.provider_url, request_kwargs={"timeout": self.cfg.timeout_sec})
+        )
 
     def get_tx_count(self, address: str) -> int:
         """Return transaction count for an address with retry and cache.

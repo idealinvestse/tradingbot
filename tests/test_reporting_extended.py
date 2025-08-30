@@ -9,7 +9,7 @@ from app.strategies.reporting import generate_results_markdown_from_db
 
 def test_generate_results_markdown_includes_data_window_and_config_hash() -> None:
     # Create a temporary database
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp_db:
         db_path = Path(tmp_db.name)
 
     con = sqlite3.connect(db_path)
@@ -106,7 +106,9 @@ def test_generate_results_markdown_includes_data_window_and_config_hash() -> Non
     )
 
     # Minimal metrics
-    cur.execute("INSERT INTO metrics (run_id, key, value) VALUES (?, ?, ?)", (run_id, "profit_total", 1.0))
+    cur.execute(
+        "INSERT INTO metrics (run_id, key, value) VALUES (?, ?, ?)", (run_id, "profit_total", 1.0)
+    )
 
     con.commit()
     con.close()
